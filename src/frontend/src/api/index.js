@@ -1,0 +1,11 @@
+// 统一导出所有 API 模块
+export * as auth from './modules/auth'
+export * as accounts from './modules/accounts'
+export * as content from './modules/content'
+export * as publisher from './modules/publisher'
+export * as publishPool from './modules/publishPool'
+export * as scheduler from './modules/scheduler'
+export * as dashboard from './modules/dashboard'
+export * as users from './modules/users'
+export * as customers from './modules/customers'
+export * as platforms from './modules/platforms'

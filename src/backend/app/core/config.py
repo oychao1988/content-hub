@@ -1,0 +1,88 @@
+"""
+ContentHub 配置文件
+"""
+import os
+from typing import List, Optional
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+data_dir = os.path.join(base_dir, "data")
+env_file = os.path.join(base_dir, ".env")
+
+
+class Settings(BaseSettings):
+    """ContentHub 配置"""
+
+    # 应用基础配置
+    APP_NAME: str = "ContentHub"
+    APP_VERSION: str = "1.0.0"
+    DEBUG: bool = True
+    LOG_LEVEL: str = "INFO"
+
+    # 模块配置
+    MODULES_ENABLED: str = "auth,accounts,content,scheduler,publisher,publish_pool,dashboard"
+
+    # 服务器配置
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
+
+    # API 配置
+    API_V1_PREFIX: str = "/api/v1"
+    API_STR: str = "/api/v1"
+
+    # 数据库配置
+    DATABASE_URL: Optional[str] = f"sqlite:///{os.path.join(data_dir, 'contenthub.db')}"
+
+    # 安全配置
+    SECRET_KEY: str = "your-secret-key-here-change-in-production"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 天
+    RESET_TOKEN_EXPIRE_MINUTES: int = 30  # 30 分钟
+
+    # CORS 配置
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+
+    # Content-Publisher 服务配置
+    PUBLISHER_API_URL: str = "http://150.158.88.23:3010"
+    PUBLISHER_API_KEY: str = ""
+
+    # Content-Creator CLI 配置
+    CREATOR_CLI_PATH: str = ""
+    CREATOR_WORK_DIR: str = os.path.join(data_dir, "creator-work")
+
+    # Tavily API 配置（选题搜索）
+    TAVILY_API_KEY: str = ""
+
+    # 任务调度配置
+    SCHEDULER_ENABLED: bool = True
+    SCHEDULER_TIMEZONE: str = "Asia/Shanghai"
+
+    # 文件存储配置
+    STORAGE_ROOT: str = os.path.join(data_dir, "accounts")
+    MAX_UPLOAD_SIZE: int = 10485760  # 10MB
+    IMAGE_UPLOAD_DIR: str = os.path.join(data_dir, "uploads", "images")  # 图片上传目录
+
+    # 日志配置
+    LOG_FILE: Optional[str] = "logs/contenthub.log"
+    LOG_FORMAT: str = "detailed"  # simple | detailed
+    LOG_ROTATION_SIZE: str = "10 MB"
+    LOG_RETENTION_DAYS: int = 30
+    LOG_ERROR_RETENTION_DAYS: int = 60
+    LOG_COMPRESSION: bool = True
+    LOG_ASYNC: bool = True
+    LOG_SQL_QUERIES: bool = False
+    LOG_HTTP_REQUESTS: bool = True
+    LOG_PERFORMANCE: bool = False  # 性能日志
+    LOG_THIRD_PARTY: bool = False  # 第三方库日志
+
+    model_config = SettingsConfigDict(
+        env_file=env_file,
+        validate_by_name=True,
+        arbitrary_types_allowed=True,
+        extra="ignore",
+    )
+
+
+settings = Settings()

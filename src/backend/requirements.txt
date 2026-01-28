@@ -1,0 +1,45 @@
+# FastAPI 核心
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# 数据库
+sqlalchemy==2.0.25
+alembic==1.13.1
+
+# 任务调度
+apscheduler==3.10.4
+
+# HTTP 客户端
+requests==2.31.0
+httpx==0.26.0
+
+# 环境变量
+python-dotenv==1.0.0
+
+# 日志
+loguru==0.7.2
+
+# 工具
+python-multipart==0.0.6
+aiofiles==23.2.1
+
+# 认证和安全
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+python-multipart==0.0.6
+
+# 外部 API
+tavily-python==0.3.5
+
+# 测试框架
+pytest==7.4.4
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+httpx==0.26.0
+faker==19.0.0
+
+# 开发工具
+black==23.12.1
+flake8==7.0.0
