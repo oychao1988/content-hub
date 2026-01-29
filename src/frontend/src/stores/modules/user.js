@@ -47,8 +47,8 @@ export const useUserStore = defineStore(
     const getUserInfo = async () => {
       try {
         const response = await authApi.getCurrentUser()
-        user.value = response
-        permissions.value = response.permissions || []
+        user.value = response.data
+        permissions.value = response.data.permissions || []
         return response
       } catch (error) {
         console.error('获取用户信息失败:', error)
