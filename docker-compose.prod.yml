@@ -1,0 +1,85 @@
+version: '3.8'
+
+# 生产环境 Docker Compose 配置
+# 使用方法: docker compose -f docker-compose.prod.yml up -d
+
+services:
+  # ==================== Backend Service ====================
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    container_name: contenthub-backend-prod
+    restart: always
+    ports:
+      - "127.0.0.1:8000:8000"  # 仅监听本地，由外部 Nginx 反向代理
+    volumes:
+      # 持久化数据目录
+      - ./data/backend:/app/data
+      # 日志目录
+      - ./logs/backend:/app/logs
+    env_file:
+      - ./src/backend/.env
+    environment:
+      # 生产环境配置
+      - DEBUG=false
+      - LOG_LEVEL=WARNING
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/docs', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - contenthub-network
+
+  # ==================== Frontend Service (Optional) ====================
+  # 如果使用外部 Nginx，可以注释掉此服务
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: contenthub-frontend-prod
+    restart: always
+    ports:
+      - "127.0.0.1:8080:80"  # 监听本地 8080 端口
+    volumes:
+      # nginx 日志
+      - ./logs/frontend:/var/log/nginx
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - contenthub-network
+
+# ==================== Networks ====================
+networks:
+  contenthub-network:
+    driver: bridge
+    name: contenthub-network-prod

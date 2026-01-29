@@ -21,7 +21,7 @@ export const useUserStore = defineStore(
     const login = async (credentials) => {
       try {
         const response = await authApi.login(credentials)
-        token.value = response.access_token
+        token.value = response.data.access_token
         await getUserInfo()
         return response
       } catch (error) {

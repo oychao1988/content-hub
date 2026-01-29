@@ -1,0 +1,126 @@
+# ==================== Python/Backend ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ==================== Node/Frontend ====================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+.yarn/
+.pnpm-store/
+
+# ==================== Git ====================
+.git/
+.gitignore
+.gitattributes
+
+# ==================== Documentation ====================
+*.md
+!README.md
+docs/
+LICENSE
+CHANGELOG.md
+
+# ==================== IDE & Editors ====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.env.local
+.env.*.local
+
+# ==================== Testing ====================
+tests/
+test/
+*.test.js
+*.spec.js
+.coverage
+coverage/
+htmlcov/
+.pytest_cache/
+.tox/
+.hypothesis/
+*.cover
+
+# ==================== Logs ====================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ==================== Environment ====================
+.env
+.env.*
+!.env.example
+
+# ==================== Data & Runtime ====================
+data/
+*.db
+*.sqlite
+*.sqlite3
+temp/
+tmp/
+*.tmp
+
+# ==================== Build Artifacts ====================
+dist/
+build/
+*.tsbuildinfo
+
+# ==================== Docker ====================
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# ==================== OS ====================
+.DS_Store
+Thumbs.db
+*.bak
+*.backup
+
+# ==================== CI/CD ====================
+.github/
+.gitlab-ci.yml
+.travis.yml
+jenkins*
+
+# ==================== Misc ====================
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vuepress/dist/
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.editorconfig
+.eslintrc*
+.prettierrc*
+.stylelintrc*

@@ -9,16 +9,20 @@ from app.modules.platform.schemas import (
     PlatformCreate, PlatformUpdate, PlatformResponse, PlatformListResponse
 )
 from app.db.database import get_db
+from app.core.permissions import require_permission, Permission
+from app.modules.shared.deps import get_current_user
 
 router = APIRouter(tags=["platforms"])
 
 
 @router.get("/", response_model=PlatformListResponse)
+@require_permission(Permission.PLATFORM_READ)
 async def get_platforms(
     skip: int = Query(0, ge=0, description="跳过的记录数"),
     limit: int = Query(20, ge=1, le=100, description="返回的记录数"),
     search: Optional[str] = Query(None, description="搜索关键词"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """
     获取平台列表
@@ -33,7 +37,8 @@ async def get_platforms(
 
 
 @router.get("/{platform_id}", response_model=PlatformResponse)
-async def get_platform(platform_id: int, db: Session = Depends(get_db)):
+@require_permission(Permission.PLATFORM_READ)
+async def get_platform(platform_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
     获取平台详情
 
@@ -50,7 +55,8 @@ async def get_platform(platform_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=PlatformResponse, status_code=201)
-async def create_platform(platform: PlatformCreate, db: Session = Depends(get_db)):
+@require_permission(Permission.PLATFORM_CREATE)
+async def create_platform(platform: PlatformCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
     创建平台
 
@@ -75,10 +81,12 @@ async def create_platform(platform: PlatformCreate, db: Session = Depends(get_db
 
 
 @router.put("/{platform_id}", response_model=PlatformResponse)
+@require_permission(Permission.PLATFORM_UPDATE)
 async def update_platform(
     platform_id: int,
     platform: PlatformUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """
     更新平台
@@ -119,7 +127,8 @@ async def update_platform(
 
 
 @router.delete("/{platform_id}")
-async def delete_platform(platform_id: int, db: Session = Depends(get_db)):
+@require_permission(Permission.PLATFORM_DELETE)
+async def delete_platform(platform_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
     删除平台
 

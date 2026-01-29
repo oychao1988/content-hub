@@ -5,12 +5,14 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.models.platform import Platform
+from app.core.cache import cache_query, invalidate_cache_pattern
 
 
 class PlatformService:
     """平台管理服务"""
 
     @staticmethod
+    @cache_query(ttl=1800, key_prefix="platforms")
     def get_all(db: Session, skip: int = 0, limit: int = 20, search: Optional[str] = None) -> tuple[List[Platform], int]:
         """
         获取平台列表
@@ -44,6 +46,7 @@ class PlatformService:
         return platforms, total
 
     @staticmethod
+    @cache_query(ttl=1800, key_prefix="platform_by_id")
     def get_by_id(db: Session, platform_id: int) -> Optional[Platform]:
         """
         获取单个平台
@@ -58,6 +61,7 @@ class PlatformService:
         return db.query(Platform).filter(Platform.id == platform_id).first()
 
     @staticmethod
+    @cache_query(ttl=1800, key_prefix="platform_by_code")
     def get_by_code(db: Session, code: str) -> Optional[Platform]:
         """
         根据代码获取平台
@@ -87,6 +91,10 @@ class PlatformService:
         db.add(platform)
         db.commit()
         db.refresh(platform)
+
+        # 失效相关缓存
+        invalidate_cache_pattern("platform")
+
         return platform
 
     @staticmethod
@@ -108,6 +116,10 @@ class PlatformService:
                 setattr(platform, key, value)
             db.commit()
             db.refresh(platform)
+
+            # 失效相关缓存
+            invalidate_cache_pattern("platform")
+
         return platform
 
     @staticmethod
@@ -126,6 +138,10 @@ class PlatformService:
         if platform:
             db.delete(platform)
             db.commit()
+
+            # 失效相关缓存
+            invalidate_cache_pattern("platform")
+
             return True
         return False
 

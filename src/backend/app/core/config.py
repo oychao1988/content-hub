@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     RESET_TOKEN_EXPIRE_MINUTES: int = 30  # 30 分钟
 
     # CORS 配置
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:3010", "http://localhost:5173"]
 
     # Content-Publisher 服务配置
     PUBLISHER_API_URL: str = "http://150.158.88.23:3010"

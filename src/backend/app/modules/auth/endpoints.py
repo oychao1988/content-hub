@@ -24,6 +24,7 @@ from app.modules.shared.schemas.auth import (
 )
 from app.modules.shared.schemas.user import UserCreate, UserLogin, UserRead
 from app.modules.shared.services import user_service
+from app.services.audit_service import AuditService
 
 router = APIRouter()
 
@@ -89,14 +90,34 @@ async def login(request: Request, db: Session = Depends(get_db)) -> Any:
     user = user_service.authenticate_user(
         db, identifier, payload.password, use_email=use_email
     )
-    if not user or not user.is_active:
+
+    # 审计日志
+    if user and user.is_active:
+        AuditService.log_event(
+            db=db,
+            event_type="user_login",
+            user_id=user.id,
+            result="success",
+            details={"username": user.username, "email": user.email},
+            request=request
+        )
+        token_pair = _token_response(str(user.id))
+        return ApiResponse(success=True, data=token_pair)
+    else:
+        # 记录失败的登录尝试
+        AuditService.log_event(
+            db=db,
+            event_type="user_login_failed",
+            user_id=None,
+            result="failure",
+            details={"identifier": identifier},
+            request=request
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户名或密码错误",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    token_pair = _token_response(str(user.id))
-    return ApiResponse(success=True, data=token_pair)
 
 
 @router.post("/refresh", response_model=ApiResponse[TokenPair])
@@ -118,7 +139,20 @@ async def me(current_user: Any = Depends(get_current_user)) -> Any:
 
 
 @router.post("/logout", status_code=204)
-async def logout() -> Response:
+async def logout(
+    request: Request,
+    current_user: Any = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Response:
+    # 记录登出审计日志
+    AuditService.log_event(
+        db=db,
+        event_type="user_logout",
+        user_id=current_user.id if hasattr(current_user, 'id') else None,
+        result="success",
+        details={"username": current_user.username if hasattr(current_user, 'username') else None},
+        request=request
+    )
     # 无状态 JWT，无需服务端存储，直接返回 204
     return Response(status_code=204)
 
@@ -138,7 +172,9 @@ async def forgot_password(
 
 @router.post("/reset-password", response_model=ApiResponse[Dict[str, Any]])
 async def reset_password(
-    payload: ResetPasswordRequest = Body(...), db: Session = Depends(get_db)
+    request: Request,
+    payload: ResetPasswordRequest = Body(...),
+    db: Session = Depends(get_db)
 ) -> Any:
     user_id = decode_reset_token(payload.token)
     if not user_id:
@@ -149,6 +185,17 @@ async def reset_password(
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="用户不存在")
     user_service.update_password(db, user, payload.password)
+
+    # 记录密码重置审计日志
+    AuditService.log_event(
+        db=db,
+        event_type="password_reset",
+        user_id=user.id,
+        result="success",
+        details={"username": user.username},
+        request=request
+    )
+
     return ApiResponse(success=True, data={"message": "密码已重置"})
 
 

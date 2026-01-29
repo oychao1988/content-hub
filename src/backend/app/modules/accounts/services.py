@@ -7,17 +7,20 @@ from typing import List, Optional
 from app.db.database import get_db
 from app.models.account import Account
 from app.services.account_config_service import account_config_service
+from app.core.cache import cache_query, invalidate_cache_pattern
 
 
 class AccountService:
     """账号管理服务"""
 
     @staticmethod
+    @cache_query(ttl=300, key_prefix="accounts")
     def get_account_list(db: Session) -> List[Account]:
         """获取账号列表"""
         return db.query(Account).order_by(Account.created_at.desc()).all()
 
     @staticmethod
+    @cache_query(ttl=300, key_prefix="account_by_id")
     def get_account_detail(db: Session, account_id: int) -> Optional[Account]:
         """获取账号详情（含所有配置）"""
         return db.query(Account).filter(Account.id == account_id).first()
@@ -29,6 +32,10 @@ class AccountService:
         db.add(account)
         db.commit()
         db.refresh(account)
+
+        # 失效相关缓存
+        invalidate_cache_pattern("account")
+
         return account
 
     @staticmethod
@@ -40,6 +47,10 @@ class AccountService:
                 setattr(account, key, value)
             db.commit()
             db.refresh(account)
+
+            # 失效相关缓存
+            invalidate_cache_pattern("account")
+
         return account
 
     @staticmethod
@@ -49,6 +60,10 @@ class AccountService:
         if account:
             db.delete(account)
             db.commit()
+
+            # 失效相关缓存
+            invalidate_cache_pattern("account")
+
             return True
         return False
 

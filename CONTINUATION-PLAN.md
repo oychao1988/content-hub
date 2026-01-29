@@ -18,6 +18,65 @@
 
 ## 阶段划分
 
+### 阶段 0: 前端权限控制实现 [✓ 已完成]
+- **目标**: 实现基于角色的 UI 显示控制，包括后端权限系统和前端权限控制
+- **详细描述**:
+  1. **后端权限系统**
+     - 创建权限装饰器和权限检查函数
+     - 定义权限枚举和角色权限映射
+     - 完善用户模型和 Schema
+     - 为账号管理和系统配置端点添加权限装饰器
+
+  2. **前端权限控制**
+     - 创建权限 Store 和权限指令（v-permission, v-role）
+     - 实现路由守卫和动态菜单过滤
+     - 创建 PermissionButton 组件和 403 页面
+     - 在现有页面应用权限控制
+
+  3. **测试用户**
+     - 创建测试用户初始化脚本
+     - 提供 admin/operator/customer 三个角色的测试用户
+
+- **完成标准**:
+  - 不同角色看到不同的菜单
+  - 无权限按钮自动隐藏或禁用
+  - 访问受限页面自动跳转到 403
+  - 权限检查不影响性能
+
+- **执行结果**:
+  - **后端实现**：
+    - ✅ 权限枚举类（46 个权限，使用 resource:operation 格式）
+    - ✅ 角色权限映射（admin/operator/customer）
+    - ✅ 权限装饰器（@require_permission, @require_all_permissions, @require_role）
+    - ✅ 账号管理端点权限控制（所有 CRUD 操作）
+    - ✅ 系统配置端点权限控制（写作风格和内容主题管理）
+    - ✅ 用户 Schema 权限字段自动计算
+  - **前端实现**：
+    - ✅ 权限指令（v-permission, v-role）
+    - ✅ 权限按钮组件（PermissionButton）
+    - ✅ 403 无权限页面
+    - ✅ 路由守卫和动态菜单过滤
+    - ✅ 权限使用文档（PERMISSION_GUIDE.md）
+    - ✅ 账号管理页面示例应用
+  - **创建文件**：
+    - src/backend/app/core/permissions.py
+    - src/backend/init_test_users.py
+    - src/frontend/src/directives/permission.js
+    - src/frontend/src/pages/403.vue
+    - src/frontend/src/components/PermissionButton.vue
+    - src/frontend/PERMISSION_GUIDE.md
+    - PHASE_1_COMPLETION_REPORT.md
+  - **修改文件**：
+    - src/backend/app/modules/shared/schemas/user.py
+    - src/backend/app/modules/accounts/endpoints.py
+    - src/backend/app/modules/config/endpoints.py
+    - src/frontend/src/router/index.js
+    - src/frontend/src/layouts/MainLayout.vue
+    - src/frontend/src/main.js
+    - src/frontend/src/pages/AccountManage.vue
+
+- **状态**: ✓ 已完成
+
 ### 阶段 1: 系统配置模块完善 [✓ 已完成]
 - **目标**: 实现写作风格管理和内容主题管理功能
 - **详细描述**:
@@ -216,9 +275,9 @@
 - **状态**: ✓ 已完成
 
 ## 整体进展
-- 已完成: 3 / 3 ✅
+- 已完成: 4 / 4 ✅
 - 当前阶段: 全部完成
-- 整体项目完成度: 约 65%（从 50% → 55% → 60% → 65%）
+- 整体项目完成度: 约 80%（从 50% → 55% → 60% → 65% → 80%）
 
 ## 阶段 1 完成总结
 

@@ -6,22 +6,26 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.models.account import WritingStyle
 from app.models.theme import ContentTheme
+from app.core.cache import cache_config, invalidate_cache_pattern
 
 
 class WritingStyleService:
     """写作风格管理服务"""
 
     @staticmethod
+    @cache_config(ttl=3600, key_prefix="writing_styles")
     def get_writing_styles(db: Session, skip: int = 0, limit: int = 100) -> List[WritingStyle]:
         """获取写作风格列表"""
         return db.query(WritingStyle).order_by(WritingStyle.created_at.desc()).offset(skip).limit(limit).all()
 
     @staticmethod
+    @cache_config(ttl=3600, key_prefix="writing_style_by_id")
     def get_writing_style_by_id(db: Session, style_id: int) -> Optional[WritingStyle]:
         """根据 ID 获取写作风格"""
         return db.query(WritingStyle).filter(WritingStyle.id == style_id).first()
 
     @staticmethod
+    @cache_config(ttl=3600, key_prefix="writing_style_by_code")
     def get_writing_style_by_code(db: Session, code: str) -> Optional[WritingStyle]:
         """根据代码获取写作风格"""
         return db.query(WritingStyle).filter(WritingStyle.code == code).first()
@@ -38,6 +42,11 @@ class WritingStyleService:
         db.add(writing_style)
         db.commit()
         db.refresh(writing_style)
+
+        # 失效相关缓存
+        invalidate_cache_pattern("writing_style")
+        invalidate_cache_pattern("writing_styles")
+
         return writing_style
 
     @staticmethod
@@ -58,6 +67,11 @@ class WritingStyleService:
 
         db.commit()
         db.refresh(writing_style)
+
+        # 失效相关缓存
+        invalidate_cache_pattern("writing_style")
+        invalidate_cache_pattern("writing_styles")
+
         return writing_style
 
     @staticmethod
@@ -73,6 +87,11 @@ class WritingStyleService:
 
         db.delete(writing_style)
         db.commit()
+
+        # 失效相关缓存
+        invalidate_cache_pattern("writing_style")
+        invalidate_cache_pattern("writing_styles")
+
         return True
 
     @staticmethod
@@ -90,16 +109,19 @@ class ContentThemeService:
     """内容主题管理服务"""
 
     @staticmethod
+    @cache_config(ttl=3600, key_prefix="content_themes")
     def get_content_themes(db: Session, skip: int = 0, limit: int = 100) -> List[ContentTheme]:
         """获取内容主题列表"""
         return db.query(ContentTheme).order_by(ContentTheme.created_at.desc()).offset(skip).limit(limit).all()
 
     @staticmethod
+    @cache_config(ttl=3600, key_prefix="content_theme_by_id")
     def get_content_theme_by_id(db: Session, theme_id: int) -> Optional[ContentTheme]:
         """根据 ID 获取内容主题"""
         return db.query(ContentTheme).filter(ContentTheme.id == theme_id).first()
 
     @staticmethod
+    @cache_config(ttl=3600, key_prefix="content_theme_by_code")
     def get_content_theme_by_code(db: Session, code: str) -> Optional[ContentTheme]:
         """根据代码获取内容主题"""
         return db.query(ContentTheme).filter(ContentTheme.code == code).first()
@@ -116,6 +138,11 @@ class ContentThemeService:
         db.add(content_theme)
         db.commit()
         db.refresh(content_theme)
+
+        # 失效相关缓存
+        invalidate_cache_pattern("content_theme")
+        invalidate_cache_pattern("content_themes")
+
         return content_theme
 
     @staticmethod
@@ -136,6 +163,11 @@ class ContentThemeService:
 
         db.commit()
         db.refresh(content_theme)
+
+        # 失效相关缓存
+        invalidate_cache_pattern("content_theme")
+        invalidate_cache_pattern("content_themes")
+
         return content_theme
 
     @staticmethod
@@ -151,6 +183,11 @@ class ContentThemeService:
 
         db.delete(content_theme)
         db.commit()
+
+        # 失效相关缓存
+        invalidate_cache_pattern("content_theme")
+        invalidate_cache_pattern("content_themes")
+
         return True
 
     @staticmethod

@@ -9,16 +9,20 @@ from app.modules.customer.schemas import (
     CustomerCreate, CustomerUpdate, CustomerResponse, CustomerListResponse
 )
 from app.db.database import get_db
+from app.core.permissions import require_permission, Permission
+from app.modules.shared.deps import get_current_user
 
 router = APIRouter(tags=["customers"])
 
 
 @router.get("/", response_model=CustomerListResponse)
+@require_permission(Permission.CUSTOMER_READ)
 async def get_customers(
     skip: int = Query(0, ge=0, description="跳过的记录数"),
     limit: int = Query(20, ge=1, le=100, description="返回的记录数"),
     search: Optional[str] = Query(None, description="搜索关键词"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """
     获取客户列表
@@ -33,7 +37,8 @@ async def get_customers(
 
 
 @router.get("/{customer_id}", response_model=CustomerResponse)
-async def get_customer(customer_id: int, db: Session = Depends(get_db)):
+@require_permission(Permission.CUSTOMER_READ)
+async def get_customer(customer_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
     获取客户详情
 
@@ -50,7 +55,8 @@ async def get_customer(customer_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=CustomerResponse, status_code=201)
-async def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
+@require_permission(Permission.CUSTOMER_CREATE)
+async def create_customer(customer: CustomerCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
     创建客户
 
@@ -70,10 +76,12 @@ async def create_customer(customer: CustomerCreate, db: Session = Depends(get_db
 
 
 @router.put("/{customer_id}", response_model=CustomerResponse)
+@require_permission(Permission.CUSTOMER_UPDATE)
 async def update_customer(
     customer_id: int,
     customer: CustomerUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """
     更新客户
@@ -104,7 +112,8 @@ async def update_customer(
 
 
 @router.delete("/{customer_id}")
-async def delete_customer(customer_id: int, db: Session = Depends(get_db)):
+@require_permission(Permission.CUSTOMER_DELETE)
+async def delete_customer(customer_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
     删除客户
 

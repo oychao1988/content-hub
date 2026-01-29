@@ -3,6 +3,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
+from app.core.permissions import get_user_permissions, get_role_permissions
+
 
 class UserBase(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=64)
@@ -34,22 +36,22 @@ class UserLogin(BaseModel):
 
 class UserRead(UserBase):
     id: int
-    roles: List[str] = ["user"]
+    role: str = "operator"  # 用户角色：admin/operator/customer
+    permissions: List[str] = []  # 用户权限列表（基于角色自动计算）
     is_active: bool
     created_at: datetime
 
     @model_validator(mode="before")
-    def split_roles(cls, values):
+    def compute_permissions(cls, values):
+        """自动计算用户的权限列表"""
         if isinstance(values, dict):
-            roles = values.get("roles")
+            role = values.get("role", "operator")
+            values["permissions"] = [perm.value for perm in get_role_permissions(role)]
         else:
-            roles = getattr(values, "roles", None)
-        if isinstance(roles, str):
-            normalized = [r for r in roles.split(",") if r]
-            if isinstance(values, dict):
-                values["roles"] = normalized
-            else:
-                setattr(values, "roles", normalized)
+            # 从 ORM 对象读取
+            role = getattr(values, "role", "operator")
+            permissions = get_role_permissions(role)
+            setattr(values, "permissions", [perm.value for perm in permissions])
         return values
 
     class Config:

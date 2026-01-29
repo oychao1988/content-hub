@@ -11,6 +11,8 @@ from app.modules.config.schemas import (
     WritingStyleCreate, WritingStyleUpdate, WritingStyleResponse,
     ContentThemeCreate, ContentThemeUpdate, ContentThemeResponse
 )
+from app.core.permissions import require_permission, Permission, require_role
+from app.modules.shared.deps import get_current_user
 
 router = APIRouter(prefix="/config", tags=["config"])
 
@@ -18,11 +20,13 @@ router = APIRouter(prefix="/config", tags=["config"])
 # ============= 写作风格相关端点 =============
 
 @router.get("/writing-styles", response_model=List[WritingStyleResponse])
+@require_permission(Permission.WRITING_STYLE_READ)
 async def get_writing_styles(
     skip: int = Query(0, ge=0, description="跳过记录数"),
     limit: int = Query(100, ge=1, le=100, description="返回记录数"),
     is_system: bool = Query(None, description="筛选系统级风格"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """获取写作风格列表"""
     if is_system is not None:
@@ -36,7 +40,12 @@ async def get_writing_styles(
 
 
 @router.get("/writing-styles/{style_id}", response_model=WritingStyleResponse)
-async def get_writing_style(style_id: int, db: Session = Depends(get_db)):
+@require_permission(Permission.WRITING_STYLE_READ)
+async def get_writing_style(
+    style_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """获取写作风格详情"""
     style = writing_style_service.get_writing_style_by_id(db, style_id)
     if not style:
@@ -45,7 +54,12 @@ async def get_writing_style(style_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/writing-styles", response_model=WritingStyleResponse)
-async def create_writing_style(style: WritingStyleCreate, db: Session = Depends(get_db)):
+@require_permission(Permission.WRITING_STYLE_CREATE)
+async def create_writing_style(
+    style: WritingStyleCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """创建写作风格（需要管理员权限）"""
     try:
         return writing_style_service.create_writing_style(db, style.dict())
@@ -54,7 +68,13 @@ async def create_writing_style(style: WritingStyleCreate, db: Session = Depends(
 
 
 @router.put("/writing-styles/{style_id}", response_model=WritingStyleResponse)
-async def update_writing_style(style_id: int, style: WritingStyleUpdate, db: Session = Depends(get_db)):
+@require_permission(Permission.WRITING_STYLE_UPDATE)
+async def update_writing_style(
+    style_id: int,
+    style: WritingStyleUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """更新写作风格"""
     try:
         updated_style = writing_style_service.update_writing_style(
@@ -68,7 +88,12 @@ async def update_writing_style(style_id: int, style: WritingStyleUpdate, db: Ses
 
 
 @router.delete("/writing-styles/{style_id}")
-async def delete_writing_style(style_id: int, db: Session = Depends(get_db)):
+@require_permission(Permission.WRITING_STYLE_DELETE)
+async def delete_writing_style(
+    style_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """删除写作风格（需要管理员权限）"""
     try:
         success = writing_style_service.delete_writing_style(db, style_id)
@@ -82,11 +107,13 @@ async def delete_writing_style(style_id: int, db: Session = Depends(get_db)):
 # ============= 内容主题相关端点 =============
 
 @router.get("/content-themes", response_model=List[ContentThemeResponse])
+@require_permission(Permission.CONTENT_THEME_READ)
 async def get_content_themes(
     skip: int = Query(0, ge=0, description="跳过记录数"),
     limit: int = Query(100, ge=1, le=100, description="返回记录数"),
     is_system: bool = Query(None, description="筛选系统级主题"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """获取内容主题列表"""
     if is_system is not None:
@@ -100,7 +127,12 @@ async def get_content_themes(
 
 
 @router.get("/content-themes/{theme_id}", response_model=ContentThemeResponse)
-async def get_content_theme(theme_id: int, db: Session = Depends(get_db)):
+@require_permission(Permission.CONTENT_THEME_READ)
+async def get_content_theme(
+    theme_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """获取内容主题详情"""
     theme = content_theme_service.get_content_theme_by_id(db, theme_id)
     if not theme:
@@ -109,7 +141,12 @@ async def get_content_theme(theme_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/content-themes", response_model=ContentThemeResponse)
-async def create_content_theme(theme: ContentThemeCreate, db: Session = Depends(get_db)):
+@require_permission(Permission.CONTENT_THEME_CREATE)
+async def create_content_theme(
+    theme: ContentThemeCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """创建内容主题（需要管理员权限）"""
     try:
         return content_theme_service.create_content_theme(db, theme.dict())
@@ -118,7 +155,13 @@ async def create_content_theme(theme: ContentThemeCreate, db: Session = Depends(
 
 
 @router.put("/content-themes/{theme_id}", response_model=ContentThemeResponse)
-async def update_content_theme(theme_id: int, theme: ContentThemeUpdate, db: Session = Depends(get_db)):
+@require_permission(Permission.CONTENT_THEME_UPDATE)
+async def update_content_theme(
+    theme_id: int,
+    theme: ContentThemeUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """更新内容主题"""
     try:
         updated_theme = content_theme_service.update_content_theme(
@@ -132,7 +175,12 @@ async def update_content_theme(theme_id: int, theme: ContentThemeUpdate, db: Ses
 
 
 @router.delete("/content-themes/{theme_id}")
-async def delete_content_theme(theme_id: int, db: Session = Depends(get_db)):
+@require_permission(Permission.CONTENT_THEME_DELETE)
+async def delete_content_theme(
+    theme_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """删除内容主题（需要管理员权限）"""
     try:
         success = content_theme_service.delete_content_theme(db, theme_id)
