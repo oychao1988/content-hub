@@ -2,6 +2,7 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '../stores/modules/user'
 import config from '../config'
+import errorHandler from './errorHandler'
 
 // 创建 axios 实例
 const request = axios.create({
@@ -12,7 +13,26 @@ const request = axios.create({
   }
 })
 
-// 请求拦截器
+// 请求重试配置
+const MAX_RETRY_TIMES = 2
+const RETRY_DELAY = 1000 // 1秒
+
+/**
+ * 延迟函数
+ * @param {number} ms - 延迟毫秒数
+ */
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
+/**
+ * 生成请求 ID
+ */
+function generateRequestId() {
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+}
+
+/**
+ * 请求拦截器
+ */
 request.interceptors.request.use(
   (config) => {
     const userStore = useUserStore()
@@ -22,69 +42,194 @@ request.interceptors.request.use(
       config.headers.Authorization = `Bearer ${userStore.token}`
     }
 
+    // 添加请求 ID（用于追踪）
+    const requestId = generateRequestId()
+    config.headers['X-Request-ID'] = requestId
+
+    config.metadata = {
+      startTime: new Date(),
+      retryCount: 0,
+      requestId: requestId
+    }
+
     return config
   },
   (error) => {
-    console.error('请求错误:', error)
+    console.error('请求配置错误:', error)
     return Promise.reject(error)
   }
 )
 
-// 响应拦截器
+/**
+ * 响应拦截器
+ */
 request.interceptors.response.use(
   (response) => {
-    return response.data
-  },
-  (error) => {
-    const userStore = useUserStore()
-
-    if (error.response) {
-      const { status, data } = error.response
-
-      switch (status) {
-        case 401:
-          // 未授权，清除 token 并跳转登录
-          ElMessage.error('登录已过期，请重新登录')
-          userStore.logout()
-          window.location.href = '/login'
-          break
-
-        case 403:
-          ElMessage.error('没有权限访问此资源')
-          break
-
-        case 404:
-          ElMessage.error('请求的资源不存在')
-          break
-
-        case 422:
-          // 表单验证错误
-          const errors = data.detail
-          if (Array.isArray(errors)) {
-            const errorMessages = errors.map(err => err.msg).join(', ')
-            ElMessage.error(errorMessages)
-          } else {
-            ElMessage.error(data.message || '请求参数错误')
-          }
-          break
-
-        case 500:
-          ElMessage.error('服务器内部错误，请稍后重试')
-          break
-
-        default:
-          ElMessage.error(data.message || '请求失败')
+    // 记录请求耗时
+    const endTime = new Date()
+    const startTime = response.config.metadata?.startTime
+    if (startTime) {
+      const duration = endTime - startTime
+      if (duration > 3000) {
+        console.warn(`慢请求警告: ${response.config.url} 耗时 ${duration}ms`)
       }
-    } else if (error.request) {
-      // 请求已发送但没有收到响应
-      ElMessage.error('网络错误，请检查网络连接')
-    } else {
-      // 请求配置错误
-      ElMessage.error('请求配置错误')
     }
 
-    return Promise.reject(error)
+    // 返回标准化的响应数据
+    return response.data
+  },
+  async (error) => {
+    const originalRequest = error.config
+
+    // 提取错误信息
+    const errorInfo = errorHandler.extractAxiosError(error)
+    const { status, data, message, degraded } = errorInfo
+
+    // 如果是降级响应，显示警告而不是错误
+    if (degraded) {
+      ElMessage.warning(message)
+      return Promise.reject({
+        ...error,
+        handled: true,
+        userMessage: message,
+        degraded: true
+      })
+    }
+
+    // 判断是否需要重新登录
+    if (errorHandler.shouldLogout(status, data)) {
+      ElMessage.error('登录已过期，请重新登录')
+
+      const userStore = useUserStore()
+      await userStore.logout()
+
+      // 跳转到登录页
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
+
+      return Promise.reject(error)
+    }
+
+    // 判断是否可重试
+    const isRetryable = errorHandler.isRetryable(status, data)
+    const retryCount = originalRequest.metadata?.retryCount || 0
+
+    if (isRetryable && retryCount < MAX_RETRY_TIMES && !originalRequest._skipRetry) {
+      // 增加重试计数
+      originalRequest.metadata = originalRequest.metadata || {}
+      originalRequest.metadata.retryCount = retryCount + 1
+
+      console.warn(
+        `请求失败，正在重试 (${retryCount + 1}/${MAX_RETRY_TIMES}):`,
+        originalRequest.url
+      )
+
+      // 指数退避
+      await delay(RETRY_DELAY * Math.pow(2, retryCount))
+
+      // 重新发送请求
+      return request(originalRequest)
+    }
+
+    // 处理验证错误（422）
+    if (status === 422) {
+      let validationMessage = '输入数据验证失败'
+
+      // 如果有错误详情，格式化显示
+      if (data?.error?.details) {
+        validationMessage = errorHandler.handleValidationError(data.error.details)
+      } else if (data?.detail) {
+        // 兼容旧的 FastAPI 验证错误格式
+        if (Array.isArray(data.detail)) {
+          const errors = {}
+          data.detail.forEach(err => {
+            const field = err.loc?.[err.loc.length - 1] || 'unknown'
+            errors[field] = err.msg
+          })
+          validationMessage = errorHandler.handleValidationError(errors)
+        } else {
+          validationMessage = data.detail
+        }
+      } else if (data?.error?.message) {
+        validationMessage = data.error.message
+      }
+
+      ElMessage.error(validationMessage)
+      return Promise.reject(error)
+    }
+
+    // 显示错误提示（根据错误类型）
+    let errorMessage = message
+
+    // 如果是验证错误，使用详情信息
+    if (data?.error?.code === 'VALIDATION_ERROR' && data?.error?.details) {
+      errorMessage = errorHandler.handleValidationError(data.error.details)
+    }
+
+    // 根据配置决定是否显示错误消息
+    if (!originalRequest._silent) {
+      ElMessage.error(errorMessage)
+    }
+
+    // 记录错误日志
+    console.error('API 请求失败:', {
+      url: originalRequest.url,
+      method: originalRequest.method,
+      status,
+      data,
+      message,
+      requestId: data?.requestId || error.response?.headers?.['x-request-id'] || originalRequest.metadata?.requestId || 'N/A',
+      processTime: error.response?.headers?.['x-process-time'] || 'N/A'
+    })
+
+    return Promise.reject({
+      ...error,
+      handled: true,
+      userMessage: errorMessage
+    })
   }
 )
+
+/**
+ * 包装请求方法，支持静默模式
+ * @param {Function} requestFn - 请求函数
+ * @param {Object} options - 选项
+ * @param {boolean} options.silent - 是否静默（不显示错误提示）
+ * @param {boolean} options.skipRetry - 是否跳过重试
+ */
+export function withOptions(requestFn, options = {}) {
+  return function(...args) {
+    const config = args[args.length - 1] || {}
+
+    if (options.silent) {
+      config._silent = true
+    }
+
+    if (options.skipRetry) {
+      config._skipRetry = true
+    }
+
+    args[args.length - 1] = config
+    return requestFn.apply(this, args)
+  }
+}
+
+/**
+ * 导出带有常用选项的请求方法
+ */
+export const silentRequest = {
+  get: (url, config) => request.get(url, { ...config, _silent: true }),
+  post: (url, data, config) => request.post(url, data, { ...config, _silent: true }),
+  put: (url, data, config) => request.put(url, data, { ...config, _silent: true }),
+  delete: (url, config) => request.delete(url, { ...config, _silent: true })
+}
+
+export const noRetryRequest = {
+  get: (url, config) => request.get(url, { ...config, _skipRetry: true }),
+  post: (url, data, config) => request.post(url, data, { ...config, _skipRetry: true }),
+  put: (url, data, config) => request.put(url, data, { ...config, _skipRetry: true }),
+  delete: (url, config) => request.delete(url, { ...config, _skipRetry: true })
+}
 
 export default request

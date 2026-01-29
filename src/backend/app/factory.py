@@ -14,9 +14,16 @@ from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.exceptions import (
+    BaseAppException,
     general_exception_handler,
     http_exception_handler,
     validation_exception_handler,
+)
+from app.core.error_handlers import business_exception_handler
+from app.core.middleware import (
+    RequestIDMiddleware,
+    RequestLoggingMiddleware,
+    ErrorContextMiddleware
 )
 from app.core.module_system.loader import load_modules, run_shutdown, run_startup
 from app.db.database import init_db
@@ -54,25 +61,15 @@ def create_app() -> FastAPI:
             allow_headers=["*"],
         )
 
-    # 请求日志中间件
-    @app.middleware("http")
-    async def log_requests(request: Request, call_next):
-        start_time = time.time()
-        response = await call_next(request)
-        process_time = time.time() - start_time
-
-        # 记录慢请求
-        if process_time > 1.0:
-            log.warning(
-                f"SLOW REQUEST: {request.method} {request.url.path} "
-                f"{response.status_code} {process_time:.3f}s"
-            )
-
-        return response
+    # 添加自定义中间件（注意顺序：后添加的先执行）
+    app.add_middleware(ErrorContextMiddleware)  # 最内层
+    app.add_middleware(RequestLoggingMiddleware)  # 中间层
+    app.add_middleware(RequestIDMiddleware)  # 最外层
 
     # 异常处理器
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(BaseAppException, business_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)
 
     # 加载业务模块
