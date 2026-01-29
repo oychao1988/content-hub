@@ -9,6 +9,12 @@ const routes = [
     meta: { title: '登录', requiresAuth: false }
   },
   {
+    path: '/403',
+    name: 'Forbidden',
+    component: () => import('../pages/403.vue'),
+    meta: { title: '访问被拒绝', requiresAuth: false }
+  },
+  {
     path: '/',
     component: () => import('../layouts/MainLayout.vue'),
     meta: { requiresAuth: true },
@@ -23,13 +29,19 @@ const routes = [
         path: 'accounts',
         name: 'Accounts',
         component: () => import('../pages/AccountManage.vue'),
-        meta: { title: '账号管理', icon: 'User', permissions: ['accounts:read'] }
+        meta: { title: '账号管理', icon: 'User', permissions: ['account:read'] }
       },
       {
         path: 'content',
         name: 'Content',
         component: () => import('../pages/ContentManage.vue'),
         meta: { title: '内容管理', icon: 'Document', permissions: ['content:read'] }
+      },
+      {
+        path: 'content/:id',
+        name: 'ContentDetail',
+        component: () => import('../pages/ContentDetail.vue'),
+        meta: { title: '内容详情', icon: 'Document', permissions: ['content:read'] }
       },
       {
         path: 'publisher',
@@ -54,19 +66,19 @@ const routes = [
         path: 'users',
         name: 'Users',
         component: () => import('../pages/UserManage.vue'),
-        meta: { title: '用户管理', icon: 'UserFilled', permissions: ['users:read'], role: 'admin' }
+        meta: { title: '用户管理', icon: 'UserFilled', permissions: ['user:read'], role: 'admin' }
       },
       {
         path: 'customers',
         name: 'Customers',
         component: () => import('../pages/CustomerManage.vue'),
-        meta: { title: '客户管理', icon: 'OfficeBuilding', permissions: ['customers:read'], role: 'admin' }
+        meta: { title: '客户管理', icon: 'OfficeBuilding', permissions: ['customer:read'], role: 'admin' }
       },
       {
         path: 'platforms',
         name: 'Platforms',
         component: () => import('../pages/PlatformManage.vue'),
-        meta: { title: '平台管理', icon: 'Platform', permissions: ['platforms:read'], role: 'admin' }
+        meta: { title: '平台管理', icon: 'Platform', permissions: ['platform:read'], role: 'admin' }
       },
       {
         path: 'config',
@@ -78,13 +90,13 @@ const routes = [
         path: 'writing-styles',
         name: 'WritingStyles',
         component: () => import('../pages/WritingStyleManage.vue'),
-        meta: { title: '写作风格管理', icon: 'EditPen', permissions: ['config:read'], role: 'admin' }
+        meta: { title: '写作风格管理', icon: 'EditPen', permissions: ['writing-style:read'], role: 'admin' }
       },
       {
         path: 'content-themes',
         name: 'ContentThemes',
         component: () => import('../pages/ContentThemeManage.vue'),
-        meta: { title: '内容主题管理', icon: 'CollectionTag', permissions: ['config:read'], role: 'admin' }
+        meta: { title: '内容主题管理', icon: 'CollectionTag', permissions: ['content-theme:read'], role: 'admin' }
       }
     ]
   }
@@ -112,20 +124,22 @@ router.beforeEach((to, from, next) => {
   }
 
   // 检查权限
-  if (to.meta.permissions) {
-    const hasPermission = to.meta.permissions.some(permission =>
-      userStore.user?.permissions?.includes(permission)
-    )
+  if (to.meta.permissions && userStore.user) {
+    const hasPermission = userStore.hasAnyPermission(to.meta.permissions)
     if (!hasPermission) {
-      next({ name: 'Dashboard' })
+      // 跳转到 403 页面
+      next({ name: 'Forbidden' })
       return
     }
   }
 
   // 检查角色
-  if (to.meta.role && userStore.user?.role !== to.meta.role) {
-    next({ name: 'Dashboard' })
-    return
+  if (to.meta.role && userStore.user) {
+    if (userStore.user.role !== to.meta.role) {
+      // 跳转到 403 页面
+      next({ name: 'Forbidden' })
+      return
+    }
   }
 
   next()

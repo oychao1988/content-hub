@@ -1,7 +1,13 @@
 <template>
   <div class="account-manage">
     <page-header title="账号管理" icon="User">
-      <el-button type="primary" :icon="Plus" @click="handleCreate">
+      <!-- 使用权限指令控制按钮显示 - 只有 admin 和 operator 可以创建账号 -->
+      <el-button
+        v-permission="['account:create']"
+        type="primary"
+        :icon="Plus"
+        @click="handleCreate"
+      >
         新建账号
       </el-button>
     </page-header>
@@ -76,16 +82,38 @@
       <el-table-column prop="created_at" label="创建时间" width="180" />
       <el-table-column label="操作" width="240" fixed="right">
         <template #default="{ row }">
+          <!-- 查看权限 - 所有角色都可以查看 -->
           <el-button link type="primary" :icon="View" @click="handleView(row)">
             查看
           </el-button>
-          <el-button link type="primary" :icon="Edit" @click="handleEdit(row)">
+          <!-- 编辑权限 - admin 和 operator 可以编辑 -->
+          <el-button
+            v-permission="['account:update']"
+            link
+            type="primary"
+            :icon="Edit"
+            @click="handleEdit(row)"
+          >
             编辑
           </el-button>
-          <el-button link type="primary" :icon="Refresh" @click="handleSync(row)">
+          <!-- 同步权限 - admin 和 operator 可以同步 -->
+          <el-button
+            v-permission="['account:update']"
+            link
+            type="primary"
+            :icon="Refresh"
+            @click="handleSync(row)"
+          >
             同步
           </el-button>
-          <el-button link type="danger" :icon="Delete" @click="handleDelete(row)">
+          <!-- 删除权限 - 只有 admin 可以删除 -->
+          <el-button
+            v-role="'admin'"
+            link
+            type="danger"
+            :icon="Delete"
+            @click="handleDelete(row)"
+          >
             删除
           </el-button>
         </template>

@@ -75,13 +75,16 @@
         </template>
       </el-table-column>
       <el-table-column prop="created_at" label="创建时间" width="180" />
-      <el-table-column label="操作" width="280" fixed="right">
+      <el-table-column label="操作" width="350" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" :icon="View" @click="handleView(row)">
             查看
           </el-button>
           <el-button link type="primary" :icon="Edit" @click="handleEdit(row)">
             编辑
+          </el-button>
+          <el-button link type="info" :icon="Document" @click="handlePreview(row)">
+            预览
           </el-button>
           <el-button link type="success" :icon="MagicStick" @click="handleGenerate(row)">
             生成
@@ -176,6 +179,30 @@
       </template>
     </el-dialog>
 
+    <!-- 预览对话框 -->
+    <el-dialog
+      v-model="previewDialogVisible"
+      :title="previewTitle"
+      width="900px"
+      class="preview-dialog"
+    >
+      <div class="preview-content">
+        <MarkdownPreview
+          :content="previewContent"
+          @image-click="handleImageClick"
+        />
+      </div>
+      <template #footer>
+        <el-button @click="previewDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 图片预览 -->
+    <ImagePreview
+      v-model="imagePreviewVisible"
+      :image-src="previewImageSrc"
+    />
+
     <!-- AI 生成对话框 -->
     <el-dialog
       v-model="generateDialogVisible"
@@ -227,8 +254,11 @@ import {
   Edit,
   Delete,
   MagicStick,
-  Promotion
+  Promotion,
+  Document
 } from '@element-plus/icons-vue'
+import MarkdownPreview from '../components/content/MarkdownPreview.vue'
+import ImagePreview from '../components/content/ImagePreview.vue'
 
 // 搜索表单
 const searchForm = reactive({
@@ -266,6 +296,21 @@ const formRules = {
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
   content_type: [{ required: true, message: '请选择内容类型', trigger: 'change' }],
   content: [{ required: true, message: '请输入内容', trigger: 'blur' }]
+}
+
+// 预览对话框
+const previewDialogVisible = ref(false)
+const previewTitle = ref('')
+const previewContent = ref('')
+
+// 图片预览
+const imagePreviewVisible = ref(false)
+const previewImageSrc = ref('')
+
+// 处理图片点击
+const handleImageClick = (src) => {
+  previewImageSrc.value = src
+  imagePreviewVisible.value = true
 }
 
 // AI 生成对话框
@@ -376,6 +421,13 @@ const handleView = (row) => {
   dialogTitle.value = '查看内容'
   Object.assign(formData, row)
   dialogVisible.value = true
+}
+
+// 预览
+const handlePreview = (row) => {
+  previewTitle.value = row.title
+  previewContent.value = row.content
+  previewDialogVisible.value = true
 }
 
 // 编辑
@@ -529,5 +581,17 @@ onMounted(() => {
 
 .batch-actions :deep(.el-alert) {
   padding: 12px 20px;
+}
+
+.preview-dialog {
+  .el-dialog__body {
+    padding: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+}
+
+.preview-content {
+  width: 100%;
 }
 </style>

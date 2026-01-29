@@ -1,8 +1,10 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '../stores/modules/user'
+import { useCacheStore } from '../stores/modules/cache'
 import config from '../config'
 import errorHandler from './errorHandler'
+import Cache from './cache'
 
 // 创建 axios 实例
 const request = axios.create({
@@ -73,6 +75,16 @@ request.interceptors.response.use(
       if (duration > 3000) {
         console.warn(`慢请求警告: ${response.config.url} 耗时 ${duration}ms`)
       }
+    }
+
+    // 如果是 GET 请求且启用了缓存，存入缓存
+    if (response.config.method === 'get' && response.config.enableCache) {
+      const cacheStore = useCacheStore()
+      const cacheKey = response.config.url
+      const cacheParams = response.config.params || {}
+      const cacheTTL = response.config.cacheTTL || 5 * 60 * 1000 // 默认5分钟
+
+      cacheStore.set(cacheKey, cacheParams, response.data, cacheTTL)
     }
 
     // 返回标准化的响应数据
@@ -232,4 +244,36 @@ export const noRetryRequest = {
   delete: (url, config) => request.delete(url, { ...config, _skipRetry: true })
 }
 
+/**
+ * 带缓存的 GET 请求
+ * @param {string} url - 请求URL
+ * @param {Object} config - 请求配置
+ * @param {number} cacheTTL - 缓存时长（毫秒），默认5分钟
+ */
+export function cachedGet(url, config = {}, cacheTTL = 5 * 60 * 1000) {
+  const cacheStore = useCacheStore()
+  const params = config.params || {}
+
+  // 尝试从缓存获取
+  const cachedData = cacheStore.get(url, params)
+  if (cachedData !== null) {
+    return Promise.resolve(cachedData)
+  }
+
+  // 缓存未命中，发起请求并启用缓存
+  return request.get(url, {
+    ...config,
+    enableCache: true,
+    cacheTTL
+  })
+}
+
 export default request
+
+// 导出带缓存的请求方法
+export const cachedRequest = {
+  get: cachedGet,
+  post: (url, data, config) => request.post(url, data, config),
+  put: (url, data, config) => request.put(url, data, config),
+  delete: (url, config) => request.delete(url, config)
+}

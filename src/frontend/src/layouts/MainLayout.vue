@@ -125,10 +125,25 @@ const activeMenu = computed(() => {
   return route.path
 })
 
-// 菜单路由（从路由配置中提取）
+// 菜单路由（从路由配置中提取，并根据权限过滤）
 const menuRoutes = computed(() => {
   return router.getRoutes().filter(route => {
-    return route.meta?.title && !route.meta?.requiresAuth === false && route.path !== '/'
+    // 必须有标题且不是根路径
+    if (!route.meta?.title || route.path === '/') {
+      return false
+    }
+
+    // 检查角色权限
+    if (route.meta?.role && route.meta.role !== userStore.user?.role) {
+      return false
+    }
+
+    // 检查功能权限
+    if (route.meta?.permissions && userStore.user) {
+      return userStore.hasAnyPermission(route.meta.permissions)
+    }
+
+    return true
   })
 })
 
