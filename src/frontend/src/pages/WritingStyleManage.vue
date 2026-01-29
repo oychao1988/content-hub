@@ -244,6 +244,7 @@ import { PageHeader, SearchForm, DataTable } from '../components/common'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Edit, Delete } from '@element-plus/icons-vue'
 import * as config from '../api/modules/config'
+import { commonRules } from '../composables/useFormValidation'
 
 // 搜索表单
 const searchForm = reactive({
@@ -288,16 +289,11 @@ const formData = reactive({
 
 // 表单验证规则
 const formRules = {
-  name: [{ required: true, message: '请输入风格名称', trigger: 'blur' }],
-  code: [
-    { required: true, message: '请输入风格代码', trigger: 'blur' },
-    {
-      pattern: /^[a-zA-Z0-9_]+$/,
-      message: '风格代码只能包含字母、数字和下划线',
-      trigger: 'blur'
-    }
-  ],
-  tone: [{ required: true, message: '请选择语气', trigger: 'change' }]
+  name: commonRules.writingStyleName(),
+  code: commonRules.writingStyleCode(),
+  tone: commonRules.writingStyleTone(),
+  min_words: commonRules.writingStyleWordRange().min_words,
+  max_words: commonRules.writingStyleWordRange().max_words
 }
 
 // 详情数据

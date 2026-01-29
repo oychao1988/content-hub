@@ -128,6 +128,7 @@ import { PageHeader, DataTable, SearchForm } from '../components/common'
 import { platforms as platformsApi } from '../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Edit, Delete } from '@element-plus/icons-vue'
+import { commonRules } from '../composables/useFormValidation'
 
 const searchForm = reactive({
   name: '',
@@ -159,10 +160,11 @@ const formData = reactive({
 })
 
 const formRules = {
-  name: [{ required: true, message: '请输入平台名称', trigger: 'blur' }],
+  name: commonRules.platformName(),
   platform_type: [{ required: true, message: '请选择平台类型', trigger: 'change' }],
   app_id: [{ required: true, message: '请输入App ID', trigger: 'blur' }],
-  app_secret: [{ required: true, message: '请输入App Secret', trigger: 'blur' }]
+  app_secret: [{ required: true, message: '请输入App Secret', trigger: 'blur' }],
+  callback_url: commonRules.platformApiUrl()
 }
 
 const getPlatformTypeText = (type) => {

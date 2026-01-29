@@ -176,6 +176,7 @@ import { PageHeader, SearchForm, DataTable } from '../components/common'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Edit, Delete } from '@element-plus/icons-vue'
 import * as config from '../api/modules/config'
+import { commonRules } from '../composables/useFormValidation'
 
 // 搜索表单
 const searchForm = reactive({
@@ -216,15 +217,9 @@ const formData = reactive({
 
 // 表单验证规则
 const formRules = {
-  name: [{ required: true, message: '请输入主题名称', trigger: 'blur' }],
-  code: [
-    { required: true, message: '请输入主题代码', trigger: 'blur' },
-    {
-      pattern: /^[a-zA-Z0-9_]+$/,
-      message: '主题代码只能包含字母、数字和下划线',
-      trigger: 'blur'
-    }
-  ]
+  name: commonRules.contentThemeName(),
+  code: commonRules.contentThemeCode(),
+  type: commonRules.contentThemeType()
 }
 
 // 详情数据

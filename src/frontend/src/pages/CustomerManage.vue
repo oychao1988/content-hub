@@ -122,6 +122,7 @@ import { PageHeader, DataTable, SearchForm } from '../components/common'
 import { customers as customersApi } from '../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Edit, Delete } from '@element-plus/icons-vue'
+import { commonRules } from '../composables/useFormValidation'
 
 const searchForm = reactive({
   name: '',
@@ -153,11 +154,10 @@ const formData = reactive({
 })
 
 const formRules = {
-  name: [{ required: true, message: '请输入客户名称', trigger: 'blur' }],
+  name: commonRules.customerName(),
   contact: [{ required: true, message: '请输入联系人', trigger: 'blur' }],
-  email: [
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
-  ]
+  email: commonRules.customerEmail(),
+  phone: commonRules.customerPhone()
 }
 
 const fetchTableData = async () => {

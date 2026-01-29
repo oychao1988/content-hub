@@ -112,11 +112,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { PageHeader, DataTable, SearchForm } from '../components/common'
 import { users as usersApi } from '../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Edit, Delete, Key } from '@element-plus/icons-vue'
+import { commonRules } from '../composables/useFormValidation'
 
 const searchForm = reactive({
   username: '',
@@ -146,22 +147,13 @@ const formData = reactive({
 
 const formRules = computed(() => {
   const rules = {
-    username: [
-      { required: true, message: '请输入用户名', trigger: 'blur' },
-      { min: 3, max: 20, message: '用户名长度在 3 到 20 个字符', trigger: 'blur' }
-    ],
-    email: [
-      { required: true, message: '请输入邮箱', trigger: 'blur' },
-      { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
-    ],
+    username: commonRules.username(),
+    email: commonRules.userEmail(),
     role: [{ required: true, message: '请选择角色', trigger: 'change' }]
   }
 
   if (dialogMode.value === 'create') {
-    rules.password = [
-      { required: true, message: '请输入密码', trigger: 'blur' },
-      { min: 6, max: 20, message: '密码长度在 6 到 20 个字符', trigger: 'blur' }
-    ]
+    rules.password = commonRules.userPassword()
   }
 
   return rules

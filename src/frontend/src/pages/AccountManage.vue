@@ -185,6 +185,7 @@ import {
   Delete,
   Refresh
 } from '@element-plus/icons-vue'
+import { commonRules } from '../composables/useFormValidation'
 
 // 搜索表单
 const searchForm = reactive({
@@ -219,10 +220,15 @@ const formData = reactive({
 })
 
 const formRules = {
-  name: [{ required: true, message: '请输入账号名称', trigger: 'blur' }],
-  platform_id: [{ required: true, message: '请选择平台', trigger: 'change' }],
-  account_id: [{ required: true, message: '请输入账号ID', trigger: 'blur' }],
-  credentials: [{ required: true, message: '请输入认证信息', trigger: 'blur' }]
+  name: commonRules.accountName(),
+  platform_id: commonRules.accountPlatformId(),
+  account_id: [
+    { required: true, message: '请输入账号ID', trigger: 'blur' },
+    { minLength: 1, message: '账号ID不能为空', trigger: 'blur' }
+  ],
+  credentials: [
+    { required: true, message: '请输入认证信息', trigger: 'blur' }
+  ]
 }
 
 // 获取表格数据
