@@ -6,6 +6,28 @@
       </el-button>
     </page-header>
 
+    <!-- 快速导航 -->
+    <el-card class="nav-card" shadow="hover" style="margin-bottom: 20px">
+      <div class="quick-nav">
+        <div class="nav-item" @click="goToWritingStyles">
+          <el-icon :size="30" color="#409EFF"><EditPen /></el-icon>
+          <div class="nav-text">
+            <div class="nav-title">写作风格管理</div>
+            <div class="nav-desc">管理系统写作风格配置</div>
+          </div>
+          <el-icon class="nav-arrow"><ArrowRight /></el-icon>
+        </div>
+        <div class="nav-item" @click="goToContentThemes">
+          <el-icon :size="30" color="#67C23A"><CollectionTag /></el-icon>
+          <div class="nav-text">
+            <div class="nav-title">内容主题管理</div>
+            <div class="nav-desc">管理系统内容主题配置</div>
+          </div>
+          <el-icon class="nav-arrow"><ArrowRight /></el-icon>
+        </div>
+      </div>
+    </el-card>
+
     <el-card class="config-card" shadow="hover">
       <el-tabs v-model="activeTab" type="border-card">
         <!-- 基本配置 -->
@@ -182,9 +204,22 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { PageHeader } from '../components/common'
 import { ElMessage } from 'element-plus'
-import { Check } from '@element-plus/icons-vue'
+import { Check, EditPen, CollectionTag, ArrowRight } from '@element-plus/icons-vue'
+
+const router = useRouter()
+
+// 导航到写作风格管理
+const goToWritingStyles = () => {
+  router.push('/writing-styles')
+}
+
+// 导航到内容主题管理
+const goToContentThemes = () => {
+  router.push('/content-themes')
+}
 
 const activeTab = ref('basic')
 const loading = ref(false)
@@ -298,5 +333,54 @@ onMounted(() => {
 
 :deep(.el-input-number) {
   width: 100%;
+}
+
+/* 快速导航样式 */
+.quick-nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.nav-item:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 12px 0 rgba(64, 158, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.nav-text {
+  flex: 1;
+  margin-left: 15px;
+}
+
+.nav-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 5px;
+}
+
+.nav-desc {
+  font-size: 13px;
+  color: #909399;
+}
+
+.nav-arrow {
+  color: #c0c4cc;
+  transition: color 0.3s;
+}
+
+.nav-item:hover .nav-arrow {
+  color: #409eff;
 }
 </style>

@@ -73,6 +73,18 @@ const routes = [
         name: 'Config',
         component: () => import('../pages/SystemConfig.vue'),
         meta: { title: '系统配置', icon: 'Setting', permissions: ['config:read'], role: 'admin' }
+      },
+      {
+        path: 'writing-styles',
+        name: 'WritingStyles',
+        component: () => import('../pages/WritingStyleManage.vue'),
+        meta: { title: '写作风格管理', icon: 'EditPen', permissions: ['config:read'], role: 'admin' }
+      },
+      {
+        path: 'content-themes',
+        name: 'ContentThemes',
+        component: () => import('../pages/ContentThemeManage.vue'),
+        meta: { title: '内容主题管理', icon: 'CollectionTag', permissions: ['config:read'], role: 'admin' }
       }
     ]
   }
