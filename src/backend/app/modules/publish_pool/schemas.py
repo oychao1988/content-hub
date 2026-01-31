@@ -51,7 +51,7 @@ class PublishPoolRead(BaseModel):
     max_retries: int
     last_error: Optional[str]
     published_log_id: Optional[int]
-    created_at: datetime
+    added_at: datetime  # 修复：从 created_at 改为 added_at
     updated_at: datetime
     published_at: Optional[datetime]
 
