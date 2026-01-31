@@ -50,19 +50,20 @@ class ContentRead(BaseModel):
     title: str
     category: Optional[str]
     topic: Optional[str]
-    markdown_path: Optional[str]
+    # 以下字段在数据库中不存在，设置为Optional以避免ORM验证错误
+    markdown_path: Optional[str] = None
     content: Optional[str]
-    html_content: Optional[str]
+    html_content: Optional[str] = None
     cover_image: Optional[str]
     images: Optional[List[str]]
     publish_status: str  # 修复：从 status 改为 publish_status
     review_mode: str
     review_status: str
-    reviewed_at: Optional[datetime]
-    reviewed_by: Optional[int]
+    reviewed_at: Optional[datetime] = None
+    reviewed_by: Optional[int] = None
     review_comment: Optional[str]
     word_count: Optional[int]
-    tags: Optional[List[str]]
+    tags: Optional[List[str]] = None
     created_at: datetime
     updated_at: datetime
     published_at: Optional[datetime]
