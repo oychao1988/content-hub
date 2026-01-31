@@ -43,15 +43,15 @@ class AccountUpdate(BaseModel):
 class AccountRead(BaseModel):
     """账号响应模型"""
     id: int
+    name: str
     directory_name: str
-    display_name: str
-    description: Optional[str]
-    niche: Optional[str]
+    description: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class WritingStyleUpdate(BaseModel):

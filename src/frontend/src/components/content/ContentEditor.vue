@@ -4,7 +4,7 @@
     <div class="editor-toolbar">
       <el-button-group>
         <el-button size="small" @click="insertText('**', '**')" title="加粗">
-          <el-icon><Bold /></el-icon>
+          <el-icon><EditPen /></el-icon>
         </el-button>
         <el-button size="small" @click="insertText('*', '*')" title="斜体">
           <el-icon><CopyDocument /></el-icon>
@@ -34,7 +34,7 @@
 
       <el-button-group>
         <el-button size="small" @click="insertText('```', '```')" title="代码块">
-          <el-icon><Code /></el-icon>
+          <el-icon><MessageBox /></el-icon>
         </el-button>
         <el-button size="small" @click="insertText('> ', '')" title="引用">
           <el-icon><Message /></el-icon>
@@ -117,14 +117,14 @@ import { ref, watch } from 'vue'
 import MarkdownPreview from './MarkdownPreview.vue'
 import ImagePreview from './ImagePreview.vue'
 import {
-  Bold,
+  EditPen,
   CopyDocument,
   Document,
   List,
   Reading,
   Picture,
   Link,
-  Code,
+  MessageBox,
   Message,
   Edit,
   View,

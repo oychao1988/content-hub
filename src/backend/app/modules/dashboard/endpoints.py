@@ -4,7 +4,7 @@ from app.modules.dashboard.services import dashboard_service
 from app.modules.dashboard.schemas import DashboardStats, ContentTrend, PublishStats
 from app.db.database import get_db
 from app.core.cache import get_cache_stats, reset_cache_stats, memory_cache
-from typing import Optional
+from typing import Optional, List
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -12,6 +12,12 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 async def get_dashboard_stats(db: Session = Depends(get_db)):
     """获取仪表盘统计数据"""
     return dashboard_service.get_dashboard_stats(db)
+
+@router.get("/activities")
+async def get_recent_activities(limit: int = 5, db: Session = Depends(get_db)):
+    """获取最近活动记录"""
+    # 返回空列表，暂不实现具体逻辑
+    return {"items": [], "total": 0}
 
 @router.get("/content-trend", response_model=ContentTrend)
 async def get_content_trend(days: Optional[int] = 30, db: Session = Depends(get_db)):
