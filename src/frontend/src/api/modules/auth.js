@@ -1,4 +1,5 @@
 import request from '../../utils/request'
+import { silentRequest } from '../../utils/request'
 
 // 登录
 export const login = (data) => {
@@ -9,12 +10,9 @@ export const login = (data) => {
   })
 }
 
-// 登出
+// 登出 - 使用静默模式，避免触发响应拦截器的错误提示
 export const logout = () => {
-  return request({
-    url: '/auth/logout',
-    method: 'post'
-  })
+  return silentRequest.post('/auth/logout')
 }
 
 // 获取当前用户信息

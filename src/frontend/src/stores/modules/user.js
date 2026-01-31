@@ -33,14 +33,23 @@ export const useUserStore = defineStore(
     // 登出
     const logout = async () => {
       try {
+        // 使用静默请求避免触发响应拦截器的错误提示
         await authApi.logout()
       } catch (error) {
         console.error('登出失败:', error)
+        // 即使请求失败，也要清理用户状态
       } finally {
         token.value = ''
         user.value = null
         permissions.value = []
       }
+    }
+
+    // 直接清理用户状态（不发送请求）
+    const clearUserState = () => {
+      token.value = ''
+      user.value = null
+      permissions.value = []
     }
 
     // 获取用户信息

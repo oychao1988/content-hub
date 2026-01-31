@@ -110,10 +110,14 @@ request.interceptors.response.use(
 
     // 判断是否需要重新登录
     if (errorHandler.shouldLogout(status, data)) {
-      ElMessage.error('登录已过期，请重新登录')
+      // 如果不是静默请求，显示错误提示
+      if (!originalRequest._silent) {
+        ElMessage.error('登录已过期，请重新登录')
+      }
 
       const userStore = useUserStore()
-      await userStore.logout()
+      // 使用 clearUserState 方法直接清理用户状态，避免无限循环
+      userStore.clearUserState()
 
       // 跳转到登录页
       if (window.location.pathname !== '/login') {
