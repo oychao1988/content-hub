@@ -15,9 +15,24 @@ class ContentService:
     """内容管理服务"""
 
     @staticmethod
-    def get_content_list(db: Session) -> List[Content]:
-        """获取内容列表"""
-        return db.query(Content).order_by(Content.created_at.desc()).all()
+    def get_content_list(
+        db: Session,
+        page: int = 1,
+        page_size: int = 10
+    ) -> dict:
+        """获取内容列表（分页）"""
+        query = db.query(Content)
+        total = query.count()
+        contents = query.order_by(Content.created_at.desc())\
+            .offset((page - 1) * page_size)\
+            .limit(page_size)\
+            .all()
+        return {
+            "items": contents,
+            "total": total,
+            "page": page,
+            "pageSize": page_size
+        }
 
     @staticmethod
     def get_content_detail(db: Session, content_id: int) -> Optional[Content]:

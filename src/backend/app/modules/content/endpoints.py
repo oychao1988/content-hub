@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from typing import Optional
 from app.modules.content.services import content_service
 from app.modules.content.schemas import (
     ContentCreateRequest, ContentUpdate, ContentRead, ContentListRead,
-    SubmitReviewRequest, ApproveRequest, RejectRequest, ReviewStatistics
+    SubmitReviewRequest, ApproveRequest, RejectRequest, ReviewStatistics,
+    PaginatedContentList
 )
 from app.db.database import get_db
 from app.core.permissions import require_permission, Permission
@@ -11,11 +13,16 @@ from app.modules.shared.deps import get_current_user
 
 router = APIRouter(tags=["content"])
 
-@router.get("/", response_model=list[ContentListRead])
+@router.get("/", response_model=PaginatedContentList)
 @require_permission(Permission.CONTENT_READ)
-async def get_content_list(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    """获取内容列表"""
-    return content_service.get_content_list(db)
+async def get_content_list(
+    page: int = Query(1, ge=1, description="页码"),
+    page_size: int = Query(10, ge=1, le=100, description="每页数量"),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """获取内容列表（分页）"""
+    return content_service.get_content_list(db, page, page_size)
 
 @router.get("/{id}", response_model=ContentRead)
 @require_permission(Permission.CONTENT_READ)

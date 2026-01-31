@@ -125,3 +125,21 @@ class ReviewStatistics(BaseModel):
                 "rejected": 10
             }
         }
+
+
+class PaginatedContentList(BaseModel):
+    """分页内容列表响应模型"""
+    items: List[ContentListRead]
+    total: int
+    page: int
+    pageSize: int
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "items": [],
+                "total": 100,
+                "page": 1,
+                "pageSize": 10
+            }
+        }
