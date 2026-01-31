@@ -69,8 +69,8 @@
       </el-table-column>
       <el-table-column label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="getStatusType(row.status)">
-            {{ getStatusText(row.status) }}
+          <el-tag :type="getStatusType(row.publish_status)">
+            {{ getStatusText(row.publish_status) }}
           </el-tag>
         </template>
       </el-table-column>
