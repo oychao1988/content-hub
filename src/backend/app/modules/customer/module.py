@@ -7,7 +7,7 @@ from app.core.module_system.module import Module
 from app.modules.customer import endpoints
 
 router = APIRouter()
-router.include_router(endpoints.router, prefix="/customers", tags=["customers"])
+router.include_router(endpoints.router, tags=["customers"])
 
 
 # 模块启动钩子

@@ -10,7 +10,7 @@ from app.db.database import get_db
 from app.core.permissions import require_permission, Permission
 from app.modules.shared.deps import get_current_user
 
-router = APIRouter(prefix="/accounts", tags=["accounts"])
+router = APIRouter(tags=["accounts"])
 
 @router.get("/", response_model=list[AccountRead])
 @require_permission(Permission.ACCOUNT_READ)

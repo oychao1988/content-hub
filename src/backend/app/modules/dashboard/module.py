@@ -3,7 +3,7 @@ from app.core.module_system.module import Module
 from app.modules.dashboard import endpoints
 
 router = APIRouter()
-router.include_router(endpoints.router, prefix="/dashboard", tags=["dashboard"])
+router.include_router(endpoints.router, tags=["dashboard"])
 
 # 模块启动钩子
 def startup(app):

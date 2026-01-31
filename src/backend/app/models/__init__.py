@@ -9,6 +9,7 @@ from app.models.account import Account, WritingStyle, ContentSection, DataSource
 from app.models.content import Content, TopicHistory
 from app.models.scheduler import ScheduledTask, TaskExecution
 from app.models.publisher import PublishLog, PublishPool
+from app.models.audit_log import AuditLog
 
 __all__ = [
     "User",
@@ -27,4 +28,5 @@ __all__ = [
     "TaskExecution",
     "PublishLog",
     "PublishPool",
+    "AuditLog",
 ]

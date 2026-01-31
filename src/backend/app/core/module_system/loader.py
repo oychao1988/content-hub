@@ -33,7 +33,8 @@ def load_modules(app: FastAPI, settings: Any) -> List[Module]:
             log.error(f"❌ MODULE in '{module_name}' is not an app.core.module_system.module.Module")
             continue
 
-        app.include_router(module_obj.router, prefix=settings.API_STR)
+        # 为每个模块添加对应的路由前缀，避免路由冲突
+        app.include_router(module_obj.router, prefix=f"{settings.API_STR}/{module_obj.name}")
         modules.append(module_obj)
         log.info(f"✅ 成功加载模块: {module_name}")
 

@@ -11,7 +11,7 @@ from app.db.database import get_db
 from app.core.permissions import require_permission, Permission
 from app.modules.shared.deps import get_current_user
 
-router = APIRouter(prefix="/publisher", tags=["publisher"])
+router = APIRouter(tags=["publisher"])
 
 @router.get("/history", response_model=list[PublishLogRead])
 @require_permission(Permission.PUBLISHER_READ)

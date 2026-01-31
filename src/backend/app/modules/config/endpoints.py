@@ -14,7 +14,7 @@ from app.modules.config.schemas import (
 from app.core.permissions import require_permission, Permission, require_role
 from app.modules.shared.deps import get_current_user
 
-router = APIRouter(prefix="/config", tags=["config"])
+router = APIRouter(tags=["config"])
 
 
 # ============= 写作风格相关端点 =============

@@ -20,7 +20,14 @@ router = APIRouter(tags=["platforms"])
 async def get_platforms(
     skip: int = Query(0, ge=0, description="跳过的记录数"),
     limit: int = Query(20, ge=1, le=100, description="返回的记录数"),
+    page_size: Optional[int] = Query(None, ge=1, le=100, description="每页记录数（兼容前端）"),
     search: Optional[str] = Query(None, description="搜索关键词"),
+    # 兼容前端参数（暂未实现过滤功能）
+    name: Optional[str] = Query(None, description="平台名称（待实现）"),
+    platform_type: Optional[str] = Query(None, description="平台类型（待实现）"),
+    status: Optional[str] = Query(None, description="状态（待实现）"),
+    page: Optional[int] = Query(None, description="页码（待实现）"),
+    pageSize: Optional[int] = Query(None, description="每页大小（待实现）"),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
@@ -32,7 +39,23 @@ async def get_platforms(
     - limit: 返回的记录数（默认20，最大100）
     - search: 搜索关键词，会搜索平台名称、代码、类型
     """
-    platforms, total = platform_service.get_all(db, skip=skip, limit=limit, search=search)
+    import sys
+    print("=== Platforms API Params ===", file=sys.stderr)
+    print(f"skip: {skip}", file=sys.stderr)
+    print(f"limit: {limit}", file=sys.stderr)
+    print(f"page_size: {page_size}", file=sys.stderr)
+    print(f"pageSize: {pageSize}", file=sys.stderr)
+    print(f"page: {page}", file=sys.stderr)
+    print(f"name: {name}", file=sys.stderr)
+    print(f"platform_type: {platform_type}", file=sys.stderr)
+    print(f"status: {status}", file=sys.stderr)
+    print(f"search: {search}", file=sys.stderr)
+    print(f"current_user: {current_user}", file=sys.stderr)
+    print("==============================", file=sys.stderr)
+
+    # 如果有page_size参数，使用它作为limit
+    actual_limit = page_size or limit
+    platforms, total = platform_service.get_all(db, skip=skip, limit=actual_limit, search=search)
     return PlatformListResponse(items=platforms, total=total)
 
 

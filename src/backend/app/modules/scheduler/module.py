@@ -3,7 +3,7 @@ from app.core.module_system.module import Module
 from app.modules.scheduler import endpoints
 
 router = APIRouter()
-router.include_router(endpoints.router, prefix="/scheduler", tags=["scheduler"])
+router.include_router(endpoints.router, tags=["scheduler"])
 
 # 模块启动钩子
 def startup(app):

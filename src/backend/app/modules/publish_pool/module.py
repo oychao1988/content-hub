@@ -3,7 +3,7 @@ from app.core.module_system.module import Module
 from app.modules.publish_pool import endpoints
 
 router = APIRouter()
-router.include_router(endpoints.router, prefix="/publish-pool", tags=["publish-pool"])
+router.include_router(endpoints.router, tags=["publish-pool"])
 
 # 模块启动钩子
 def startup(app):

@@ -9,7 +9,7 @@ from app.db.database import get_db
 from app.core.permissions import require_permission, Permission
 from app.modules.shared.deps import get_current_user
 
-router = APIRouter(prefix="/content", tags=["content"])
+router = APIRouter(tags=["content"])
 
 @router.get("/", response_model=list[ContentListRead])
 @require_permission(Permission.CONTENT_READ)

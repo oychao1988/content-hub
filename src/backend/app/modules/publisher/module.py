@@ -3,7 +3,7 @@ from app.core.module_system.module import Module
 from app.modules.publisher import endpoints
 
 router = APIRouter()
-router.include_router(endpoints.router, prefix="/publisher", tags=["publisher"])
+router.include_router(endpoints.router, tags=["publisher"])
 
 # 模块启动钩子
 def startup(app):

@@ -11,7 +11,7 @@ from app.core.permissions import require_permission, Permission
 from app.modules.shared.deps import get_current_user
 from app.models.publisher import PublishPool
 
-router = APIRouter(prefix="/publish-pool", tags=["publish-pool"])
+router = APIRouter(tags=["publish-pool"])
 
 @router.get("/", response_model=list[PublishPoolRead])
 @require_permission(Permission.PUBLISH_POOL_READ)

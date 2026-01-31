@@ -6,7 +6,7 @@ from app.db.database import get_db
 from app.core.cache import get_cache_stats, reset_cache_stats, memory_cache
 from typing import Optional, List
 
-router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+router = APIRouter(tags=["dashboard"])
 
 @router.get("/stats", response_model=DashboardStats)
 async def get_dashboard_stats(db: Session = Depends(get_db)):

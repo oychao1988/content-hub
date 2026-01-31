@@ -3,7 +3,7 @@ from app.core.module_system.module import Module
 from app.modules.config import endpoints
 
 router = APIRouter()
-router.include_router(endpoints.router, prefix="/config", tags=["config"])
+router.include_router(endpoints.router, tags=["config"])
 
 # 模块启动钩子
 def startup(app):

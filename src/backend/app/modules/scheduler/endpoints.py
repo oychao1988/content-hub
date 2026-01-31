@@ -9,7 +9,7 @@ from app.db.database import get_db
 from app.core.permissions import require_permission, Permission
 from app.modules.shared.deps import get_current_user
 
-router = APIRouter(prefix="/scheduler", tags=["scheduler"])
+router = APIRouter(tags=["scheduler"])
 
 @router.get("/tasks", response_model=list[TaskRead])
 @require_permission(Permission.SCHEDULER_READ)
