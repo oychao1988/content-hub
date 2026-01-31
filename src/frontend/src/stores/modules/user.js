@@ -97,6 +97,7 @@ export const useUserStore = defineStore(
       login,
       logout,
       getUserInfo,
+      clearUserState,
       hasPermission,
       hasAnyPermission,
       hasAllPermissions
