@@ -391,6 +391,19 @@
 - **修复文件**: `/src/frontend/src/components/content/MarkdownPreview.vue:36-50`
 - **修复状态**: ✅ 已修复
 
+#### 问题 4: 退出登录功能无限循环问题
+- **问题描述**: 点击退出登录后，页面显示大量重复的"登录已过期，请重新登录"提示，导致无限循环
+- **影响范围**: 用户认证流程
+- **修复方案**:
+  1. 在 `auth.js` 中让退出登录请求使用静默模式，避免触发响应拦截器的错误提示
+  2. 在 `user.js` 中新增 `clearUserState` 方法，用于直接清理用户状态而不发送请求
+  3. 在 `request.js` 中修改响应拦截器，使用 `clearUserState` 替代 `userStore.logout()` 方法
+- **修复文件**:
+  - `/src/frontend/src/api/modules/auth.js`
+  - `/src/frontend/src/stores/modules/user.js`
+  - `/src/frontend/src/utils/request.js`
+- **修复状态**: ✅ 已修复
+
 ### 四、页面跳转逻辑总览
 
 ```
