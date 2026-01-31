@@ -55,7 +55,7 @@ class ContentRead(BaseModel):
     html_content: Optional[str]
     cover_image: Optional[str]
     images: Optional[List[str]]
-    status: str
+    publish_status: str  # 修复：从 status 改为 publish_status
     review_mode: str
     review_status: str
     reviewed_at: Optional[datetime]
@@ -81,7 +81,7 @@ class ContentListRead(BaseModel):
     id: int
     title: str
     category: Optional[str]
-    status: str
+    publish_status: str  # 修复：从 status 改为 publish_status
     review_status: str
     word_count: Optional[int]
     created_at: datetime
