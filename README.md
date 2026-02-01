@@ -119,21 +119,20 @@ content-hub/
 
 ## 文档
 
+### 核心文档
 - [设计文档](docs/DESIGN.md) - 完整的项目设计文档
 - [架构设计](docs/ARCHITECTURE.md) - 详细的架构设计文档
 - [实施计划](docs/IMPLEMENTATION-PLAN.md) - 项目实施计划和进度
 - [后端文档](src/backend/README.md) - 后端服务说明
 - [Skill 文档](docs/skills/ContentHub/) - Skill 框架文档
-- [测试总结报告](测试总结报告.md) - 页面交互逻辑和测试结果
-- [页面交互逻辑和测试计划](页面交互逻辑和测试计划-PLAN.md) - 详细的测试计划
-- [E2E测试最终报告](E2E_TEST_FINAL_REPORT.md) - 端到端测试总结报告 (2026-02-01)
-- [E2E API错误修复报告](E2E_API_FIX_REPORT.md) - API 404错误修复详情 (2026-02-01)
-- [E2E最终验证报告](E2E_FINAL_VERIFICATION_REPORT.md) - 修复后验证测试报告 (2026-02-01)
-- [E2E测试手动执行指南](E2E_TEST_MANUAL_GUIDE.md) - 手动执行E2E测试的详细步骤指南
-- [单元测试手动执行指南](UNIT_TEST_MANUAL_GUIDE.md) - 手动执行单元测试的详细步骤指南
-- [测试补充报告](TEST_SUPPLEMENT_REPORT.md) - 后端测试补充完整报告 (2026-02-01)
-- [测试补充摘要](TEST_SUPPLEMENT_SUMMARY.md) - 后端测试补充执行摘要 (2026-02-01)
-- [测试补充计划](TEST_SUPPLEMENT_PLAN.md) - 后端测试补充计划和执行记录 (2026-02-01)
+
+### 测试文档
+- [测试文档索引](docs/testing/README.md) - ⭐ 测试文档总目录（推荐从这里开始）
+- [E2E最终验证报告](docs/testing/reports/e2e-final-verification.md) - E2E测试验证报告 (2026-02-01)
+- [API错误修复报告](docs/testing/reports/e2e-api-fix-report.md) - API 404错误修复详情 (2026-02-01)
+- [测试补充摘要](docs/testing/reports/test-supplement-summary.md) - 后端测试补充摘要 (2026-02-01)
+- [E2E测试手动指南](docs/testing/guides/e2e-test-manual-guide.md) - 手动执行E2E测试的步骤指南
+- [单元测试手动指南](docs/testing/guides/unit-test-manual-guide.md) - 手动执行单元测试的步骤指南
 
 ## 配置说明
 
