@@ -89,6 +89,19 @@ def create_app() -> FastAPI:
             log.info("✅ 已为 customer 模块添加复数路由别名 /api/v1/customers")
             break
 
+    # 为 platform 模块添加复数形式路由别名（兼容前端调用）
+    # 前端调用 /api/v1/platforms/，后端实际路径是 /api/v1/platform/
+    for module in modules:
+        if module.name == "platform":
+            # 添加 /api/v1/platforms 别名
+            app.include_router(
+                module.router,
+                prefix=f"{settings.API_V1_PREFIX}/platforms",
+                tags=["platforms"]
+            )
+            log.info("✅ 已为 platform 模块添加复数路由别名 /api/v1/platforms")
+            break
+
     # 启动事件
     @app.on_event("startup")
     async def startup() -> None:

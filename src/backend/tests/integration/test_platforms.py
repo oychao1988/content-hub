@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 class TestPlatformEndpoints:
     """平台管理 API 端点测试类"""
 
-    def test_create_platform(self, client: TestClient, auth_headers):
+    def test_create_platform(self, client: TestClient, admin_auth_headers):
         """测试创建平台"""
         # 测试数据
         platform_data = {
@@ -24,7 +24,7 @@ class TestPlatformEndpoints:
         response = client.post(
             "/api/v1/platforms/",
             json=platform_data,
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 断言结果
@@ -36,7 +36,7 @@ class TestPlatformEndpoints:
         assert data["api_url"] == "https://api.weixin.qq.com"
         assert data["is_active"] is True
 
-    def test_get_platform_list(self, client: TestClient, auth_headers):
+    def test_get_platform_list(self, client: TestClient, admin_auth_headers):
         """测试获取平台列表"""
         # 创建测试数据
         for i in range(3):
@@ -51,11 +51,11 @@ class TestPlatformEndpoints:
                     "api_key": f"api_key{i+1}",
                     "is_active": True
                 },
-                headers=auth_headers
+                headers=admin_auth_headers
             )
 
         # 执行请求
-        response = client.get("/api/v1/platforms/", headers=auth_headers)
+        response = client.get("/api/v1/platforms/", headers=admin_auth_headers)
 
         # 断言结果
         assert response.status_code == 200
@@ -65,7 +65,7 @@ class TestPlatformEndpoints:
         assert data["total"] >= 3
         assert len(data["items"]) >= 3
 
-    def test_get_platform_detail(self, client: TestClient, auth_headers):
+    def test_get_platform_detail(self, client: TestClient, admin_auth_headers):
         """测试获取平台详情"""
         # 创建测试数据
         create_response = client.post(
@@ -79,14 +79,14 @@ class TestPlatformEndpoints:
                 "api_key": "douyin_api_key",
                 "is_active": True
             },
-            headers=auth_headers
+            headers=admin_auth_headers
         )
         platform_id = create_response.json()["id"]
 
         # 执行请求
         response = client.get(
             f"/api/v1/platforms/{platform_id}",
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 断言结果
@@ -95,7 +95,7 @@ class TestPlatformEndpoints:
         assert data["id"] == platform_id
         assert data["name"] == "抖音平台"
 
-    def test_update_platform(self, client: TestClient, auth_headers):
+    def test_update_platform(self, client: TestClient, admin_auth_headers):
         """测试更新平台"""
         # 创建测试数据
         create_response = client.post(
@@ -109,7 +109,7 @@ class TestPlatformEndpoints:
                 "api_key": "to_update_api_key",
                 "is_active": True
             },
-            headers=auth_headers
+            headers=admin_auth_headers
         )
         platform_id = create_response.json()["id"]
 
@@ -126,7 +126,7 @@ class TestPlatformEndpoints:
         response = client.put(
             f"/api/v1/platforms/{platform_id}",
             json=update_data,
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 断言结果
@@ -137,7 +137,7 @@ class TestPlatformEndpoints:
         assert data["code"] == "updated"
         assert data["is_active"] is False
 
-    def test_delete_platform(self, client: TestClient, auth_headers):
+    def test_delete_platform(self, client: TestClient, admin_auth_headers):
         """测试删除平台"""
         # 创建测试数据
         create_response = client.post(
@@ -151,14 +151,14 @@ class TestPlatformEndpoints:
                 "api_key": "to_delete_api_key",
                 "is_active": True
             },
-            headers=auth_headers
+            headers=admin_auth_headers
         )
         platform_id = create_response.json()["id"]
 
         # 执行请求
         response = client.delete(
             f"/api/v1/platforms/{platform_id}",
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 断言结果
@@ -168,11 +168,11 @@ class TestPlatformEndpoints:
         # 验证平台已删除
         get_response = client.get(
             f"/api/v1/platforms/{platform_id}",
-            headers=auth_headers
+            headers=admin_auth_headers
         )
         assert get_response.status_code == 404
 
-    def test_create_duplicate_platform(self, client: TestClient, auth_headers):
+    def test_create_duplicate_platform(self, client: TestClient, admin_auth_headers):
         """测试创建重复名称或代码的平台"""
         # 创建第一个平台
         client.post(
@@ -186,7 +186,7 @@ class TestPlatformEndpoints:
                 "api_key": "duplicate_api_key",
                 "is_active": True
             },
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 尝试创建名称相同的平台
@@ -201,7 +201,7 @@ class TestPlatformEndpoints:
                 "api_key": "different_api_key",
                 "is_active": True
             },
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 尝试创建代码相同的平台
@@ -216,14 +216,14 @@ class TestPlatformEndpoints:
                 "api_key": "samecode_api_key",
                 "is_active": True
             },
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 断言结果
         assert response1.status_code == 400
         assert response2.status_code == 400
 
-    def test_search_platforms(self, client: TestClient, auth_headers):
+    def test_search_platforms(self, client: TestClient, admin_auth_headers):
         """测试搜索平台"""
         # 创建测试数据
         client.post(
@@ -237,13 +237,13 @@ class TestPlatformEndpoints:
                 "api_key": "toutiao_api_key",
                 "is_active": True
             },
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 执行搜索
         response = client.get(
             "/api/v1/platforms/?search=头条",
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 断言结果
@@ -252,7 +252,7 @@ class TestPlatformEndpoints:
         assert data["total"] >= 1
         assert any("头条" in platform["name"] for platform in data["items"])
 
-    def test_pagination(self, client: TestClient, auth_headers):
+    def test_pagination(self, client: TestClient, admin_auth_headers):
         """测试分页功能"""
         # 创建多个平台
         for i in range(5):
@@ -267,22 +267,22 @@ class TestPlatformEndpoints:
                     "api_key": f"page_api_key{i+1}",
                     "is_active": True
                 },
-                headers=auth_headers
+                headers=admin_auth_headers
             )
 
         # 测试第一页
-        response1 = client.get("/api/v1/platforms/?skip=0&limit=2", headers=auth_headers)
+        response1 = client.get("/api/v1/platforms/?skip=0&limit=2", headers=admin_auth_headers)
         assert response1.status_code == 200
         data1 = response1.json()
         assert len(data1["items"]) == 2
         assert data1["total"] >= 5
 
         # 测试第二页
-        response2 = client.get("/api/v1/platforms/?skip=2&limit=2", headers=auth_headers)
+        response2 = client.get("/api/v1/platforms/?skip=2&limit=2", headers=admin_auth_headers)
         assert response2.status_code == 200
         data2 = response2.json()
         assert len(data2["items"]) == 2
 
         # 测试无效参数
-        response_invalid = client.get("/api/v1/platforms/?skip=-1&limit=0", headers=auth_headers)
+        response_invalid = client.get("/api/v1/platforms/?skip=-1&limit=0", headers=admin_auth_headers)
         assert response_invalid.status_code == 422
