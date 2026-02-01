@@ -110,17 +110,15 @@ class AuditService:
 
             db.add(audit_log)
             db.commit()
-            db.refresh(audit_log)
 
             log.info(
                 f"Audit log created: {event_type} by user {user_id} - {result}",
-                extra={"audit_log_id": audit_log.id, "event_type": event_type}
+                extra={"event_type": event_type}
             )
 
             return audit_log
 
         except Exception as e:
-            db.rollback()
             log.error(f"Failed to create audit log: {str(e)}")
             # 不抛出异常，避免影响主业务流程
             return None

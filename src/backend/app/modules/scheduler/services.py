@@ -14,9 +14,44 @@ class SchedulerManagerService:
     """定时任务管理服务"""
 
     @staticmethod
-    def get_task_list(db: Session) -> List[ScheduledTask]:
-        """获取定时任务列表"""
-        return db.query(ScheduledTask).order_by(ScheduledTask.created_at.desc()).all()
+    def get_task_list(db: Session, page: int = 1, page_size: int = 20) -> dict:
+        """获取定时任务列表（分页）"""
+        query = db.query(ScheduledTask)
+        total = query.count()
+        tasks = query.order_by(ScheduledTask.created_at.desc())\
+            .offset((page - 1) * page_size)\
+            .limit(page_size)\
+            .all()
+
+        # 转换为字典并添加兼容性字段 job_type
+        items = []
+        for task in tasks:
+            task_dict = {
+                "id": task.id,
+                "name": task.name,
+                "description": task.description,
+                "task_type": task.task_type,
+                "job_type": task.task_type,  # 兼容前端字段
+                "cron_expression": task.cron_expression,
+                "interval": task.interval,
+                "interval_unit": task.interval_unit,
+                "is_active": task.is_active,
+                "last_run_time": task.last_run_time,
+                "next_run_time": task.next_run_time,
+                "created_at": task.created_at,
+                "updated_at": task.updated_at,
+                "run_count": 0,
+                "failure_count": 0,
+                "status": "idle"
+            }
+            items.append(task_dict)
+
+        return {
+            "items": items,
+            "total": total,
+            "page": page,
+            "pageSize": page_size
+        }
 
     @staticmethod
     def get_task_detail(db: Session, task_id: int) -> Optional[ScheduledTask]:
@@ -62,38 +97,29 @@ class SchedulerManagerService:
 
         try:
             # 执行任务逻辑
-            task.last_run_at = datetime.utcnow()
-            task.run_count += 1
-            task.status = "running"
+            task.last_run_time = datetime.utcnow()
             db.commit()
 
             # 这里应该根据任务类型执行相应的操作
             # 例如：内容生成或发布
 
-            task.status = "completed"
-            db.commit()
-
             return {"success": True, "message": "任务执行成功"}
 
         except Exception as e:
-            task.status = "failed"
-            task.failure_count += 1
-            db.commit()
             return {"success": False, "error": str(e)}
 
     @staticmethod
     def get_execution_history(db: Session) -> List[dict]:
         """获取执行历史"""
-        tasks = db.query(ScheduledTask).order_by(ScheduledTask.last_run_at.desc()).all()
+        tasks = db.query(ScheduledTask).order_by(ScheduledTask.last_run_time.desc()).all()
         return [
             {
                 "id": task.id,
-                "task_name": task.task_name,
+                "name": task.name,
                 "task_type": task.task_type,
-                "last_run_at": task.last_run_at,
-                "run_count": task.run_count,
-                "failure_count": task.failure_count,
-                "status": task.status
+                "last_run_time": task.last_run_time,
+                "next_run_time": task.next_run_time,
+                "is_active": task.is_active
             }
             for task in tasks
         ]

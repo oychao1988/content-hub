@@ -28,6 +28,7 @@ def create_user(db: Session, payload: UserCreate) -> User:
         email=payload.email,
         full_name=payload.full_name,
         password_hash=password_hash,
+        role=payload.role,
     )
     db.add(user)
     db.commit()
@@ -36,14 +37,30 @@ def create_user(db: Session, payload: UserCreate) -> User:
 
 
 def authenticate_user(db: Session, identifier: str, password: str, use_email=True) -> Optional[User]:
+    print(f"=== authenticate_user 调试信息 ===")
+    print(f"标识符: {identifier}")
+    print(f"使用邮箱: {use_email}")
+    print(f"密码: {password}")
+
     user: Optional[User] = None
     if use_email:
         user = get_user_by_email(db, identifier)
+        print(f"通过邮箱查找用户: {user}")
     if not user:
         user = get_user_by_username(db, identifier)
+        print(f"通过用户名查找用户: {user}")
     if not user:
+        print("未找到用户")
         return None
-    if not verify_password(password, user.password_hash):
+
+    print(f"找到用户: {user.username}")
+    print(f"密码哈希: {user.password_hash}")
+
+    from app.core.security import verify_password
+    verify_result = verify_password(password, user.password_hash)
+    print(f"密码验证结果: {verify_result}")
+
+    if not verify_result:
         return None
     return user
 

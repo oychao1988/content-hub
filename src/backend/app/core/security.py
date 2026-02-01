@@ -1,4 +1,5 @@
 import os
+import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional, Union
 
@@ -21,7 +22,12 @@ def _create_token(
     token_type: str,
 ) -> str:
     expire = datetime.utcnow() + expires_delta
-    to_encode: Dict[str, Any] = {"exp": expire, "sub": str(subject), "type": token_type}
+    to_encode: Dict[str, Any] = {
+        "exp": expire,
+        "sub": str(subject),
+        "type": token_type,
+        "jti": str(uuid.uuid4())  # 添加随机的 JWT ID
+    }
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 

@@ -11,11 +11,16 @@ from app.modules.shared.deps import get_current_user
 
 router = APIRouter(tags=["scheduler"])
 
-@router.get("/tasks", response_model=list[TaskRead])
+@router.get("/tasks")
 @require_permission(Permission.SCHEDULER_READ)
-async def get_task_list(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+async def get_task_list(
+    page: int = 1,
+    page_size: int = 20,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """获取定时任务列表"""
-    return scheduler_manager_service.get_task_list(db)
+    return scheduler_manager_service.get_task_list(db, page, page_size)
 
 @router.get("/tasks/{id}", response_model=TaskRead)
 @require_permission(Permission.SCHEDULER_READ)
@@ -30,7 +35,12 @@ async def get_task_detail(id: int, db: Session = Depends(get_db), current_user =
 @require_permission(Permission.SCHEDULER_CREATE)
 async def create_task(task: TaskCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """创建定时任务"""
-    return scheduler_manager_service.create_task(db, task.dict())
+    # 处理前端字段兼容性
+    task_data = task.model_dump()
+    # 移除前端兼容字段（它们已经通过验证器映射到task_type了）
+    task_data.pop('job_type', None)
+    task_data.pop('job_params', None)
+    return scheduler_manager_service.create_task(db, task_data)
 
 @router.put("/tasks/{id}", response_model=TaskRead)
 @require_permission(Permission.SCHEDULER_UPDATE)

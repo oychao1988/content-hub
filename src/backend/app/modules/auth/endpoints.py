@@ -68,16 +68,61 @@ async def login(request: Request, db: Session = Depends(get_db)) -> Any:
     """
     payload: UserLogin
     content_type = request.headers.get("content-type", "")
-    if "application/json" in content_type:
-        body = await request.json()
-        payload = UserLogin.model_validate(body)
-    else:
-        form = await request.form()
-        payload = UserLogin(
-            username=form.get("username"),
-            email=form.get("email"),
-            password=form.get("password") or "",
-        )
+    try:
+        if "application/json" in content_type:
+            body = await request.json()
+            print(f"JSON 数据: {body}")  # 添加调试信息
+            payload = UserLogin.model_validate(body)
+        else:
+            form = await request.form()
+            # 直接验证必填字段，避免模型验证失败
+            password = form.get("password")
+            if not password:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="密码不能为空",
+                )
+
+            email = form.get("email")
+            username = form.get("username")
+            if not email and not username:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="邮箱或用户名不能为空",
+                )
+
+            payload = UserLogin(
+                username=username,
+                email=email,
+                password=password,
+            )
+    except Exception as e:
+        # 捕获 Pydantic 模型验证错误
+        print(f"异常类型: {type(e)}")  # 添加调试信息
+        print(f"异常信息: {str(e)}")  # 添加调试信息
+        error_str = str(e).lower()
+        if "email" in error_str and "username" in error_str:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="邮箱或用户名不能为空",
+            )
+        elif "password" in error_str:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="密码不能为空",
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e),
+            )
+
+    print(f"=== 登录调试信息 ===")
+    print(f"Content-Type: {content_type}")
+    print(f"Payload: {payload}")
+    print(f"用户名: {payload.username}")
+    print(f"邮箱: {payload.email}")
+    print(f"密码: {payload.password}")
 
     if not payload.password:
         raise HTTPException(
@@ -87,9 +132,27 @@ async def login(request: Request, db: Session = Depends(get_db)) -> Any:
 
     identifier = payload.email or payload.username or ""
     use_email = bool(payload.email) or ("@" in identifier)
+
+    print(f"认证参数:")
+    print(f"  标识符: {identifier}")
+    print(f"  使用邮箱: {use_email}")
+
     user = user_service.authenticate_user(
         db, identifier, payload.password, use_email=use_email
     )
+
+    print(f"user_service.authenticate_user 结果: {user}")
+    if user:
+        print(f"  用户ID: {user.id}")
+        print(f"  用户名: {user.username}")
+        print(f"  邮箱: {user.email}")
+        print(f"  密码哈希: {user.password_hash}")
+
+    # 直接调用 verify_password 进行调试
+    if user:
+        from app.core.security import verify_password
+        verify_result = verify_password(payload.password, user.password_hash)
+        print(f"  密码验证: {verify_result}")
 
     # 审计日志
     if user and user.is_active:

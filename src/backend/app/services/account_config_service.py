@@ -78,10 +78,33 @@ class AccountConfigService:
         """更新写作风格配置"""
         style = db.query(WritingStyle).filter(WritingStyle.account_id == account_id).first()
         if not style:
+            # 创建新的写作风格时，自动设置必需字段
+            # 如果 style_data 中没有 name 和 code，生成默认值
+            if "name" not in style_data:
+                style_data = dict(style_data)  # 复制字典避免修改原数据
+                style_data["name"] = f"账号{account_id}风格"
+            if "code" not in style_data:
+                style_data = dict(style_data) if "name" in style_data else dict(style_data)
+                style_data["code"] = f"account_{account_id}_style"
+
+            # 映射字段名：API使用min_word_count/max_word_count，模型使用min_words/max_words
+            if "min_word_count" in style_data and "min_words" not in style_data:
+                style_data["min_words"] = style_data.pop("min_word_count")
+            if "max_word_count" in style_data and "max_words" not in style_data:
+                style_data["max_words"] = style_data.pop("max_word_count")
+
             style = WritingStyle(account_id=account_id, **style_data)
             db.add(style)
         else:
-            for key, value in style_data.items():
+            # 更新现有写作风格
+            # 映射字段名
+            update_data = dict(style_data)
+            if "min_word_count" in update_data:
+                update_data["min_words"] = update_data.pop("min_word_count")
+            if "max_word_count" in update_data:
+                update_data["max_words"] = update_data.pop("max_word_count")
+
+            for key, value in update_data.items():
                 setattr(style, key, value)
         db.commit()
         db.refresh(style)

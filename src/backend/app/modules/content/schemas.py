@@ -8,16 +8,24 @@ from datetime import datetime
 
 class ContentCreateRequest(BaseModel):
     """创建内容请求模型"""
-    account_id: int = Field(..., description="账号 ID")
-    topic: str = Field(..., min_length=1, max_length=500, description="选题")
-    category: str = Field(..., min_length=1, max_length=100, description="内容板块")
+    title: str = Field(..., min_length=1, max_length=500, description="文章标题")
+    content_type: str = Field(..., description="内容类型")
+    content: str = Field(..., description="Markdown 内容")
+    summary: Optional[str] = Field(None, description="摘要")
+    status: Optional[str] = Field("draft", description="状态")
+    tags: Optional[List[str]] = Field(None, description="标签列表")
+    cover_image: Optional[str] = Field(None, description="封面图片路径")
 
     class Config:
         schema_extra = {
             "example": {
-                "account_id": 1,
-                "topic": "Python 异步编程",
-                "category": "技术文章"
+                "title": "E2E测试内容",
+                "content_type": "article",
+                "content": "这是E2E测试生成的内容。",
+                "summary": "这是E2E测试的摘要。",
+                "status": "draft",
+                "tags": ["E2E", "测试"],
+                "cover_image": ""
             }
         }
 

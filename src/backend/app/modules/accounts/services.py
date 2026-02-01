@@ -15,9 +15,25 @@ class AccountService:
 
     @staticmethod
     @cache_query(ttl=300, key_prefix="accounts")
-    def get_account_list(db: Session) -> List[Account]:
-        """获取账号列表"""
-        return db.query(Account).order_by(Account.created_at.desc()).all()
+    def get_account_list(db: Session) -> List[dict]:
+        """获取账号列表（兼容前端字段）"""
+        accounts = db.query(Account).order_by(Account.created_at.desc()).all()
+        result = []
+        for account in accounts:
+            account_dict = {
+                "id": account.id,
+                "name": account.name,
+                "directory_name": account.directory_name,
+                "description": account.description,
+                # 兼容前端字段
+                "platform_name": account.platform.name if account.platform else None,
+                "account_id": account.directory_name,
+                "status": "active" if account.is_active else "inactive",
+                "created_at": account.created_at,
+                "updated_at": account.updated_at
+            }
+            result.append(account_dict)
+        return result
 
     @staticmethod
     @cache_query(ttl=300, key_prefix="account_by_id")
@@ -93,10 +109,12 @@ class AccountService:
                 "id": style.id,
                 "tone": style.tone,
                 "persona": style.persona,
-                "target_audience": style.target_audience,
-                "min_word_count": style.min_word_count,
-                "max_word_count": style.max_word_count,
-                "custom_instructions": style.custom_instructions
+                "target_audience": None,  # 模型中不存在此字段，返回None
+                "min_word_count": style.min_words,
+                "max_word_count": style.max_words,
+                "custom_instructions": None,  # 模型中不存在此字段，返回None
+                "created_at": style.created_at,
+                "updated_at": style.updated_at
             }
         return None
 
@@ -108,10 +126,12 @@ class AccountService:
             "id": style.id,
             "tone": style.tone,
             "persona": style.persona,
-            "target_audience": style.target_audience,
-            "min_word_count": style.min_word_count,
-            "max_word_count": style.max_word_count,
-            "custom_instructions": style.custom_instructions
+            "target_audience": None,  # 模型中不存在此字段，返回None
+            "min_word_count": style.min_words,
+            "max_word_count": style.max_words,
+            "custom_instructions": None,  # 模型中不存在此字段，返回None
+            "created_at": style.created_at,
+            "updated_at": style.updated_at
         }
 
     @staticmethod
@@ -121,18 +141,20 @@ class AccountService:
         if config:
             return {
                 "id": config.id,
-                "wechat_app_id": config.wechat_app_id,
-                "wechat_app_secret": config.wechat_app_secret,
-                "default_theme": config.default_theme,
-                "highlight_theme": config.highlight_theme,
-                "use_mac_style": config.use_mac_style,
-                "add_footnote": config.add_footnote,
+                "wechat_app_id": None,  # 模型中不存在此字段，返回None
+                "wechat_app_secret": None,  # 模型中不存在此字段，返回None
+                "default_theme": None,  # 模型中不存在此字段，返回None
+                "highlight_theme": None,  # 模型中不存在此字段，返回None
+                "use_mac_style": None,  # 模型中不存在此字段，返回None
+                "add_footnote": None,  # 模型中不存在此字段，返回None
                 "auto_publish": config.auto_publish,
-                "publish_to_draft": config.publish_to_draft,
+                "publish_to_draft": config.publish_mode == "draft",  # 转换publish_mode
                 "review_mode": config.review_mode,
-                "batch_publish_enabled": config.batch_publish_enabled,
-                "batch_publish_interval": config.batch_publish_interval,
-                "batch_publish_size": config.batch_publish_size
+                "batch_publish_enabled": None,  # 模型中不存在此字段，返回None
+                "batch_publish_interval": None,  # 模型中不存在此字段，返回None
+                "batch_publish_size": None,  # 模型中不存在此字段，返回None
+                "created_at": config.created_at,
+                "updated_at": config.updated_at
             }
         return None
 
@@ -142,18 +164,20 @@ class AccountService:
         config = account_config_service.update_publish_config(db, account_id, config_data)
         return {
             "id": config.id,
-            "wechat_app_id": config.wechat_app_id,
-            "wechat_app_secret": config.wechat_app_secret,
-            "default_theme": config.default_theme,
-            "highlight_theme": config.highlight_theme,
-            "use_mac_style": config.use_mac_style,
-            "add_footnote": config.add_footnote,
+            "wechat_app_id": None,  # 模型中不存在此字段，返回None
+            "wechat_app_secret": None,  # 模型中不存在此字段，返回None
+            "default_theme": None,  # 模型中不存在此字段，返回None
+            "highlight_theme": None,  # 模型中不存在此字段，返回None
+            "use_mac_style": None,  # 模型中不存在此字段，返回None
+            "add_footnote": None,  # 模型中不存在此字段，返回None
             "auto_publish": config.auto_publish,
-            "publish_to_draft": config.publish_to_draft,
+            "publish_to_draft": config.publish_mode == "draft",  # 转换publish_mode
             "review_mode": config.review_mode,
-            "batch_publish_enabled": config.batch_publish_enabled,
-            "batch_publish_interval": config.batch_publish_interval,
-            "batch_publish_size": config.batch_publish_size
+            "batch_publish_enabled": None,  # 模型中不存在此字段，返回None
+            "batch_publish_interval": None,  # 模型中不存在此字段，返回None
+            "batch_publish_size": None,  # 模型中不存在此字段，返回None
+            "created_at": config.created_at,
+            "updated_at": config.updated_at
         }
 
 

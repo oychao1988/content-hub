@@ -33,12 +33,12 @@ async def get_content_detail(id: int, db: Session = Depends(get_db), current_use
         raise HTTPException(status_code=404, detail="内容不存在")
     return content
 
-@router.post("/create", response_model=ContentRead)
+@router.post("/", response_model=ContentRead)
 @require_permission(Permission.CONTENT_CREATE)
 async def create_content(request: ContentCreateRequest, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """创建内容（调用 content-creator）"""
     try:
-        return content_service.create_content(db, request.dict())
+        return content_service.create_content(db, request.dict(), current_user.id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

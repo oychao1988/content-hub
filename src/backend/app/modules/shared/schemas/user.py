@@ -14,6 +14,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6, max_length=128)
+    role: Optional[str] = Field("operator", description="用户角色：admin/operator/editor/viewer")
 
     @model_validator(mode="after")
     def validate_email(self):

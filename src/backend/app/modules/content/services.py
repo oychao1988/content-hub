@@ -40,26 +40,21 @@ class ContentService:
         return db.query(Content).filter(Content.id == content_id).first()
 
     @staticmethod
-    def create_content(db: Session, request: dict) -> Content:
-        """创建内容（调用 content-creator）"""
+    def create_content(db: Session, request: dict, account_id: int) -> Content:
+        """创建内容（直接创建）"""
         try:
-            # 调用内容生成服务
-            create_result = content_creator_service.create_content(
-                account_id=request["account_id"],
-                topic=request["topic"],
-                category=request["category"]
-            )
-
             # 创建内容记录
             content = Content(
-                account_id=request["account_id"],
-                title=create_result.get("title", request["topic"]),
-                category=request["category"],
-                topic=request["topic"],
-                content=create_result.get("content", ""),
-                word_count=create_result.get("word_count", 0),
-                cover_image=create_result.get("cover_image"),
-                images=create_result.get("images", [])
+                account_id=account_id,
+                title=request["title"],
+                content_type=request["content_type"],
+                content=request["content"],
+                summary=request.get("summary"),
+                publish_status=request.get("status", "draft"),
+                tags=request.get("tags", []),
+                cover_image=request.get("cover_image"),
+                created_at=datetime.now(),
+                updated_at=datetime.now()
             )
 
             db.add(content)

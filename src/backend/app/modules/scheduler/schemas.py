@@ -1,20 +1,34 @@
 """
 定时任务模块的 Pydantic 模型
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 
 class TaskCreate(BaseModel):
     """创建任务请求模型"""
-    name: str = Field(..., min_length=1, max_length=100, description="任务名称")  # 修复：从 task_name 改为 name
-    task_type: str = Field(..., max_length=50, description="任务类型：content_generation/publishing")
+    name: str = Field(..., min_length=1, max_length=100, description="任务名称")
     description: Optional[str] = Field(None, max_length=255, description="任务描述")
     cron_expression: Optional[str] = Field(None, max_length=50, description="Cron 表达式")
-    interval: Optional[int] = Field(None, ge=1, description="间隔时间")  # 修复：从 interval_minutes 改为 interval
-    interval_unit: Optional[str] = Field(None, max_length=20, description="间隔单位：minutes/hours/days")  # 新增
-    is_active: bool = Field(True, description="是否启用")  # 修复：从 is_enabled 改为 is_active
+    interval: Optional[int] = Field(None, ge=1, description="间隔时间")
+    interval_unit: Optional[str] = Field(None, max_length=20, description="间隔单位：minutes/hours/days")
+    is_active: bool = Field(True, description="是否启用")
+    # 兼容前端字段名：前端使用 job_type，后端使用 task_type
+    job_type: Optional[str] = Field(None, max_length=50, description="任务类型（兼容字段）")
+    job_params: Optional[str] = Field(None, description="任务参数（兼容字段）")
+    # 后端字段
+    task_type: Optional[str] = Field(None, max_length=50, description="任务类型：content_generation/publishing")
+
+    @model_validator(mode='after')
+    def validate_task_type(self):
+        """如果前端提供了 job_type，使用它作为 task_type"""
+        if self.task_type is None and self.job_type is not None:
+            # 使用 object.__setattr__ 绕过 Pydantic 的 frozen 限制
+            object.__setattr__(self, 'task_type', self.job_type)
+        if self.task_type is None:
+            raise ValueError("字段 'task_type' 或 'job_type' 是必填项")
+        return self
 
     class Config:
         schema_extra = {

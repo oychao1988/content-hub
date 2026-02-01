@@ -156,6 +156,17 @@ ROLE_PERMISSIONS: dict[str, Set[Permission]] = {
         Permission.SCHEDULER_READ,
         Permission.PUBLISH_POOL_READ,
     },
+    "editor": {
+        # 编辑权限
+        Permission.CONTENT_READ,
+        Permission.CONTENT_CREATE,
+        Permission.CONTENT_UPDATE,
+        Permission.CONTENT_DELETE,
+    },
+    "viewer": {
+        # 查看权限
+        Permission.CONTENT_READ,
+    },
 }
 
 

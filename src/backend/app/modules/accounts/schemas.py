@@ -46,6 +46,10 @@ class AccountRead(BaseModel):
     name: str
     directory_name: str
     description: Optional[str] = None
+    # 兼容前端字段
+    platform_name: Optional[str] = None  # 平台名称
+    account_id: Optional[str] = None  # 账号ID（使用directory_name）
+    status: Optional[str] = None  # 状态（从is_active转换）
     created_at: datetime
     updated_at: datetime
 

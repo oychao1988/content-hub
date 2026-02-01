@@ -13,11 +13,18 @@ from app.models.publisher import PublishPool
 
 router = APIRouter(tags=["publish-pool"])
 
-@router.get("/", response_model=list[PublishPoolRead])
+@router.get("/")
 @require_permission(Permission.PUBLISH_POOL_READ)
-async def get_publish_pool(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    """获取发布池内容列表"""
-    return publish_pool_manager_service.get_publish_pool(db)
+async def get_publish_pool(
+    page: int = 1,
+    page_size: int = 20,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """获取发布池内容列表（分页）"""
+    items = publish_pool_manager_service.get_publish_pool(db)
+    # 前端期望分页格式
+    return {"items": items, "total": len(items), "page": page, "pageSize": page_size}
 
 @router.get("/{id}", response_model=PublishPoolRead)
 @require_permission(Permission.PUBLISH_POOL_READ)
@@ -110,3 +117,34 @@ async def retry_publishing(id: int, db: Session = Depends(get_db), current_user 
     if not updated:
         raise HTTPException(status_code=404, detail="发布池条目不存在")
     return updated
+
+@router.post("/publish")
+@require_permission(Permission.PUBLISH_POOL_EXECUTE)
+async def batch_publish(
+    request_data: dict,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """批量发布"""
+    # 兼容前端格式：{"ids": [1, 2, 3]}
+    ids = request_data.get("ids", []) if isinstance(request_data, dict) else []
+
+    results = []
+    for pool_id in ids:
+        updated = publish_pool_manager_service.start_publishing(db, pool_id)
+        if updated:
+            results.append({"id": pool_id, "success": True})
+        else:
+            results.append({"id": pool_id, "success": False, "error": "发布失败"})
+    return {"results": results, "total": len(results), "success_count": sum(1 for r in results if r["success"])}
+
+@router.post("/clear")
+@require_permission(Permission.PUBLISH_POOL_EXECUTE)
+async def clear_published(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """清空已发布项"""
+    from app.models.publisher import PublishPool
+    count = db.query(PublishPool).filter(PublishPool.status == "published").count()
+    if count > 0:
+        db.query(PublishPool).filter(PublishPool.status == "published").delete()
+        db.commit()
+    return {"message": f"已清空 {count} 条已发布记录"}

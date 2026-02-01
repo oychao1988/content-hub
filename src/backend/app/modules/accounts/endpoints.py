@@ -12,14 +12,15 @@ from app.modules.shared.deps import get_current_user
 
 router = APIRouter(tags=["accounts"])
 
-@router.get("/", response_model=list[AccountRead])
+@router.get("/")
 @require_permission(Permission.ACCOUNT_READ)
 async def get_account_list(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
     """获取账号列表"""
-    return account_service.get_account_list(db)
+    items = account_service.get_account_list(db)
+    return {"items": items, "total": len(items)}
 
 @router.get("/{id}", response_model=AccountDetailRead)
 @require_permission(Permission.ACCOUNT_READ)
