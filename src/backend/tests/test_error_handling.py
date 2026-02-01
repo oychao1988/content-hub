@@ -52,7 +52,9 @@ def test_validation_exception_handler(client):
 
 def test_business_exception_handler(client):
     """测试业务异常处理器"""
-    from app.main import app
+    from app.factory import create_app
+
+    app = create_app()
 
     @app.get("/test/business-error")
     def test_business_error():
@@ -75,7 +77,9 @@ def test_business_exception_handler(client):
 
 def test_resource_not_found_exception(client):
     """测试资源未找到异常"""
-    from app.main import app
+    from app.factory import create_app
+
+    app = create_app()
 
     @app.get("/test/resource-not-found")
     def test_resource_not_found():
@@ -96,7 +100,9 @@ def test_resource_not_found_exception(client):
 
 def test_permission_denied_exception(client):
     """测试权限拒绝异常"""
-    from app.main import app
+    from app.factory import create_app
+
+    app = create_app()
 
     @app.get("/test/permission-denied")
     def test_permission_denied():
@@ -114,7 +120,9 @@ def test_permission_denied_exception(client):
 
 def test_creator_timeout_exception(client):
     """测试 Creator 超时异常"""
-    from app.main import app
+    from app.factory import create_app
+
+    app = create_app()
 
     @app.get("/test/creator-timeout")
     def test_creator_timeout():
@@ -131,7 +139,9 @@ def test_creator_timeout_exception(client):
 
 def test_publisher_exception(client):
     """测试 Publisher 异常"""
-    from app.main import app
+    from app.factory import create_app
+
+    app = create_app()
 
     @app.get("/test/publisher-error")
     def test_publisher_error():
@@ -150,7 +160,9 @@ def test_publisher_exception(client):
 
 def test_error_details_sanitization(client):
     """测试错误详情脱敏"""
-    from app.main import app
+    from app.factory import create_app
+
+    app = create_app()
 
     @app.get("/test/sensitive-error")
     def test_sensitive_error():
