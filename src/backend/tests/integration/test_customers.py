@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 class TestCustomerEndpoints:
     """客户管理 API 端点测试类"""
 
-    def test_create_customer(self, client: TestClient, auth_headers):
+    def test_create_customer(self, client: TestClient, admin_auth_headers):
         """测试创建客户"""
         # 测试数据
         customer_data = {
@@ -23,7 +23,7 @@ class TestCustomerEndpoints:
         response = client.post(
             "/api/v1/customers/",
             json=customer_data,
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 断言结果
@@ -35,7 +35,7 @@ class TestCustomerEndpoints:
         assert data["contact_phone"] == "13800138999"
         assert data["is_active"] is True
 
-    def test_get_customer_list(self, client: TestClient, auth_headers):
+    def test_get_customer_list(self, client: TestClient, admin_auth_headers):
         """测试获取客户列表"""
         # 创建测试数据
         for i in range(3):
@@ -48,11 +48,11 @@ class TestCustomerEndpoints:
                     "contact_phone": f"13800138{i+10}",
                     "is_active": True
                 },
-                headers=auth_headers
+                headers=admin_auth_headers
             )
 
         # 执行请求
-        response = client.get("/api/v1/customers/", headers=auth_headers)
+        response = client.get("/api/v1/customers/", headers=admin_auth_headers)
 
         # 断言结果
         assert response.status_code == 200
@@ -62,7 +62,7 @@ class TestCustomerEndpoints:
         assert data["total"] >= 3
         assert len(data["items"]) >= 3
 
-    def test_get_customer_detail(self, client: TestClient, auth_headers):
+    def test_get_customer_detail(self, client: TestClient, admin_auth_headers):
         """测试获取客户详情"""
         # 创建测试数据
         create_response = client.post(
@@ -74,14 +74,14 @@ class TestCustomerEndpoints:
                 "contact_phone": "13800138777",
                 "is_active": True
             },
-            headers=auth_headers
+            headers=admin_auth_headers
         )
         customer_id = create_response.json()["id"]
 
         # 执行请求
         response = client.get(
             f"/api/v1/customers/{customer_id}",
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 断言结果
@@ -90,7 +90,7 @@ class TestCustomerEndpoints:
         assert data["id"] == customer_id
         assert data["name"] == "详情测试客户"
 
-    def test_update_customer(self, client: TestClient, auth_headers):
+    def test_update_customer(self, client: TestClient, admin_auth_headers):
         """测试更新客户"""
         # 创建测试数据
         create_response = client.post(
@@ -102,7 +102,7 @@ class TestCustomerEndpoints:
                 "contact_phone": "13800138666",
                 "is_active": True
             },
-            headers=auth_headers
+            headers=admin_auth_headers
         )
         customer_id = create_response.json()["id"]
 
@@ -117,7 +117,7 @@ class TestCustomerEndpoints:
         response = client.put(
             f"/api/v1/customers/{customer_id}",
             json=update_data,
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 断言结果
@@ -130,7 +130,7 @@ class TestCustomerEndpoints:
         assert data["contact_phone"] == "13800138667"
         assert data["is_active"] is False
 
-    def test_delete_customer(self, client: TestClient, auth_headers):
+    def test_delete_customer(self, client: TestClient, admin_auth_headers):
         """测试删除客户"""
         # 创建测试数据
         create_response = client.post(
@@ -142,14 +142,14 @@ class TestCustomerEndpoints:
                 "contact_phone": "13800138555",
                 "is_active": True
             },
-            headers=auth_headers
+            headers=admin_auth_headers
         )
         customer_id = create_response.json()["id"]
 
         # 执行请求
         response = client.delete(
             f"/api/v1/customers/{customer_id}",
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 断言结果
@@ -159,11 +159,11 @@ class TestCustomerEndpoints:
         # 验证客户已删除
         get_response = client.get(
             f"/api/v1/customers/{customer_id}",
-            headers=auth_headers
+            headers=admin_auth_headers
         )
         assert get_response.status_code == 404
 
-    def test_create_duplicate_customer(self, client: TestClient, auth_headers):
+    def test_create_duplicate_customer(self, client: TestClient, admin_auth_headers):
         """测试创建重复名称的客户"""
         # 创建第一个客户
         client.post(
@@ -175,7 +175,7 @@ class TestCustomerEndpoints:
                 "contact_phone": "13800138444",
                 "is_active": True
             },
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 尝试创建重复名称的客户
@@ -188,13 +188,13 @@ class TestCustomerEndpoints:
                 "contact_phone": "13800138445",
                 "is_active": True
             },
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 断言结果
         assert response.status_code == 400
 
-    def test_search_customers(self, client: TestClient, auth_headers):
+    def test_search_customers(self, client: TestClient, admin_auth_headers):
         """测试搜索客户"""
         # 创建测试数据
         client.post(
@@ -206,13 +206,13 @@ class TestCustomerEndpoints:
                 "contact_phone": "13800138111",
                 "is_active": True
             },
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 执行搜索
         response = client.get(
             "/api/v1/customers/?search=阿里",
-            headers=auth_headers
+            headers=admin_auth_headers
         )
 
         # 断言结果
@@ -221,7 +221,7 @@ class TestCustomerEndpoints:
         assert data["total"] >= 1
         assert any("阿里" in customer["name"] for customer in data["items"])
 
-    def test_pagination(self, client: TestClient, auth_headers):
+    def test_pagination(self, client: TestClient, admin_auth_headers):
         """测试分页功能"""
         # 创建多个客户
         for i in range(5):
@@ -234,22 +234,22 @@ class TestCustomerEndpoints:
                     "contact_phone": f"13800138{i+20}",
                     "is_active": True
                 },
-                headers=auth_headers
+                headers=admin_auth_headers
             )
 
         # 测试第一页
-        response1 = client.get("/api/v1/customers/?skip=0&limit=2", headers=auth_headers)
+        response1 = client.get("/api/v1/customers/?skip=0&limit=2", headers=admin_auth_headers)
         assert response1.status_code == 200
         data1 = response1.json()
         assert len(data1["items"]) == 2
         assert data1["total"] >= 5
 
         # 测试第二页
-        response2 = client.get("/api/v1/customers/?skip=2&limit=2", headers=auth_headers)
+        response2 = client.get("/api/v1/customers/?skip=2&limit=2", headers=admin_auth_headers)
         assert response2.status_code == 200
         data2 = response2.json()
         assert len(data2["items"]) == 2
 
         # 测试无效参数
-        response_invalid = client.get("/api/v1/customers/?skip=-1&limit=0", headers=auth_headers)
+        response_invalid = client.get("/api/v1/customers/?skip=-1&limit=0", headers=admin_auth_headers)
         assert response_invalid.status_code == 422
