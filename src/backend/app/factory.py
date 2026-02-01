@@ -26,7 +26,7 @@ from app.core.middleware import (
     ErrorContextMiddleware
 )
 from app.core.module_system.loader import load_modules, run_shutdown, run_startup
-from app.db.database import init_db
+from app.db.sql_db import init_db
 from app.utils.custom_logger import log
 
 
@@ -75,6 +75,19 @@ def create_app() -> FastAPI:
     # 加载业务模块
     modules = load_modules(app, settings)
     app.state.modules = modules
+
+    # 为 customer 模块添加复数形式路由别名（兼容前端调用）
+    # 前端调用 /api/v1/customers/，后端实际路径是 /api/v1/customer/
+    for module in modules:
+        if module.name == "customer":
+            # 添加 /api/v1/customers 别名
+            app.include_router(
+                module.router,
+                prefix=f"{settings.API_V1_PREFIX}/customers",
+                tags=["customers"]
+            )
+            log.info("✅ 已为 customer 模块添加复数路由别名 /api/v1/customers")
+            break
 
     # 启动事件
     @app.on_event("startup")

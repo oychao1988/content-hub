@@ -49,6 +49,46 @@ async def batch_publish(request: BatchPublishRequest, db: Session = Depends(get_
     result = publisher_service.batch_publish(db, request.dict())
     return result
 
+
+@router.get("/records", response_model=dict)
+@require_permission(Permission.PUBLISHER_READ)
+async def get_publish_records(
+    title: str = None,
+    status: str = None,
+    page: int = 1,
+    page_size: int = 20,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    获取发布记录列表
+
+    兼容前端调用的 /records 端点
+    实际上返回发布历史记录
+    """
+    # 获取所有发布历史
+    history = publisher_service.get_publish_history(db)
+
+    # 筛选
+    if title:
+        history = [h for h in history if title.lower() in h.get("title", "").lower()]
+    if status:
+        history = [h for h in history if h.get("status") == status]
+
+    # 分页
+    total = len(history)
+    start = (page - 1) * page_size
+    end = start + page_size
+    paginated_history = history[start:end]
+
+    return {
+        "items": paginated_history,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": (total + page_size - 1) // page_size if total > 0 else 0
+    }
+
 @router.get("/pool", response_model=list[PublishPoolRead])
 @require_permission(Permission.PUBLISHER_READ)
 async def get_publish_pool(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
