@@ -108,16 +108,8 @@ class TestContentAPIIntegration:
         account_id = account.id
 
         # 创建25条内容
-        created_count = 0
         for i in range(25):
-            content_data = {
-                "account_id": account_id,
-                "topic": f"分页测试文章 {i+1}",
-                "category": "测试分类"
-            }
-            response = client.post("/api/v1/content/create", json=content_data, headers=admin_auth_headers)
-            if response.status_code in [201, 200]:
-                created_count += 1
+            self._create_test_content(db_session, account_id, f"分页测试文章 {i+1}")
 
         # 测试第一页（每页10条）
         response = client.get("/api/v1/content/?page=1&page_size=10", headers=admin_auth_headers)
@@ -169,12 +161,7 @@ class TestContentAPIIntegration:
 
         # 创建多条内容
         for i in range(5):
-            content_data = {
-                "account_id": account_id,
-                "topic": f"排序测试 {i+1}",
-                "category": "测试分类"
-            }
-            client.post("/api/v1/content/create", json=content_data, headers=admin_auth_headers)
+            self._create_test_content(db_session, account_id, f"排序测试 {i+1}")
 
         # 获取内容列表（默认按创建时间倒序）
         response = client.get("/api/v1/content/", headers=admin_auth_headers)
@@ -209,27 +196,11 @@ class TestContentAPIIntegration:
         account_id = account.id
 
         # 创建不同状态的内容
-        draft_data = {
-            "account_id": account_id,
-            "topic": "草稿文章",
-            "category": "测试"
-        }
-        draft_response = client.post("/api/v1/content/create", json=draft_data, headers=admin_auth_headers)
-        if draft_response.status_code in [201, 200]:
-            draft_id = draft_response.json()["id"]
-            # 确保是草稿状态
-            client.put(f"/api/v1/content/{draft_id}", json={"publish_status": "draft"}, headers=admin_auth_headers)
+        draft_content = self._create_test_content(db_session, account_id, "草稿文章")
+        client.put(f"/api/v1/content/{draft_content.id}", json={"publish_status": "draft"}, headers=admin_auth_headers)
 
-        published_data = {
-            "account_id": account_id,
-            "topic": "已发布文章",
-            "category": "测试"
-        }
-        published_response = client.post("/api/v1/content/create", json=published_data, headers=admin_auth_headers)
-        if published_response.status_code in [201, 200]:
-            published_id = published_response.json()["id"]
-            # 更新为已发布状态
-            client.put(f"/api/v1/content/{published_id}", json={"publish_status": "published"}, headers=admin_auth_headers)
+        published_content = self._create_test_content(db_session, account_id, "已发布文章")
+        client.put(f"/api/v1/content/{published_content.id}", json={"publish_status": "published"}, headers=admin_auth_headers)
 
         # 获取所有内容
         response = client.get("/api/v1/content/", headers=admin_auth_headers)
@@ -265,15 +236,8 @@ class TestContentAPIIntegration:
         account_id = account.id
 
         # CREATE - 创建内容
-        create_data = {
-            "account_id": account_id,
-            "topic": "CRUD测试文章",
-            "category": "测试分类"
-        }
-        create_response = client.post("/api/v1/content/create", json=create_data, headers=admin_auth_headers)
-        assert create_response.status_code in [201, 200]
-        created_content = create_response.json()
-        content_id = created_content["id"]
+        created_content = self._create_test_content(db_session, account_id, "CRUD测试文章")
+        content_id = created_content.id
 
         # READ - 读取内容列表
         list_response = client.get("/api/v1/content/", headers=admin_auth_headers)
@@ -339,15 +303,8 @@ class TestContentAPIIntegration:
         account_id = account.id
 
         # 创建内容
-        content_data = {
-            "account_id": account_id,
-            "topic": "需要审核的文章",
-            "category": "测试分类"
-        }
-        create_response = client.post("/api/v1/content/", json=content_data, headers=admin_auth_headers)
-        if create_response.status_code not in [201, 200]:
-            pytest.skip("无法创建测试内容")
-        content_id = create_response.json()["id"]
+        content = self._create_test_content(db_session, account_id, "需要审核的文章")
+        content_id = content.id
 
         # 提交审核
         submit_response = client.post(f"/api/v1/content/{content_id}/submit-review", headers=admin_auth_headers)
@@ -387,15 +344,8 @@ class TestContentAPIIntegration:
         account_id = account.id
 
         # 创建内容
-        content_data = {
-            "account_id": account_id,
-            "topic": "格式验证测试",
-            "category": "测试分类"
-        }
-        create_response = client.post("/api/v1/content/", json=content_data, headers=admin_auth_headers)
-        if create_response.status_code not in [201, 200]:
-            pytest.skip("无法创建测试内容")
-        content_id = create_response.json()["id"]
+        content = self._create_test_content(db_session, account_id, "格式验证测试")
+        content_id = content.id
 
         # 验证列表响应格式
         list_response = client.get("/api/v1/content/", headers=admin_auth_headers)
@@ -457,12 +407,7 @@ class TestContentAPIIntegration:
         account_id = account.id
 
         # 创建特定主题的内容
-        content_data = {
-            "account_id": account_id,
-            "topic": "Python 异步编程完整教程",
-            "category": "技术教程"
-        }
-        client.post("/api/v1/content/create", json=content_data, headers=admin_auth_headers)
+        self._create_test_content(db_session, account_id, "Python 异步编程完整教程")
 
         # 测试搜索（如果API支持搜索参数）
         search_response = client.get("/api/v1/content/?search=Python", headers=admin_auth_headers)
