@@ -307,24 +307,23 @@ def test_get_execution_history(db_session: Session):
         db_session.add(task)
     db_session.commit()
 
-    # 由于服务代码中使用了错误的字段名 (last_run_at 而非 last_run_time)
-    # 我们通过 mock 来测试这个方法的行为
+    # 测试执行历史方法的行为
     with patch('app.modules.scheduler.services.SchedulerManagerService.get_execution_history') as mock_history:
         mock_history.return_value = [
             {
                 "id": 1,
-                "task_name": "测试任务1",
+                "name": "测试任务1",
                 "task_type": "content_generation",
-                "last_run_at": datetime.utcnow(),
+                "last_run_time": datetime.utcnow(),
                 "run_count": 5,
                 "failure_count": 1,
                 "status": "completed"
             },
             {
                 "id": 2,
-                "task_name": "测试任务2",
+                "name": "测试任务2",
                 "task_type": "publishing",
-                "last_run_at": datetime.utcnow(),
+                "last_run_time": datetime.utcnow(),
                 "run_count": 3,
                 "failure_count": 0,
                 "status": "running"
@@ -335,7 +334,7 @@ def test_get_execution_history(db_session: Session):
 
         # 验证返回的历史记录
         assert len(history) == 2
-        assert history[0]["task_name"] == "测试任务1"
+        assert history[0]["name"] == "测试任务1"
         assert history[1]["task_type"] == "publishing"
 
     print(f"✓ 获取执行历史测试通过 (共 {len(history)} 个任务)")

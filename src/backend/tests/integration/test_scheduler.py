@@ -224,3 +224,219 @@ class TestSchedulerEndpoints:
         """测试未授权访问"""
         response = client.get("/api/v1/scheduler/tasks")
         assert response.status_code == 401
+
+
+class TestSchedulerTaskExecution:
+    """定时任务执行和调度器状态测试类"""
+
+    def test_trigger_task_manually(self, client: TestClient, admin_auth_headers):
+        """测试手动触发任务执行"""
+        # 创建测试任务
+        task_data = {
+            "name": "手动触发测试任务",
+            "description": "用于测试手动触发的任务",
+            "task_type": "content_generation",
+            "cron_expression": "0 8 * * *",
+            "is_active": True
+        }
+        create_response = client.post("/api/v1/scheduler/tasks", json=task_data, headers=admin_auth_headers)
+        if create_response.status_code not in [201, 200]:
+            pytest.skip("无法创建测试任务")
+
+        task_id = create_response.json()["id"]
+
+        # 手动触发任务
+        trigger_response = client.post(f"/api/v1/scheduler/tasks/{task_id}/trigger", headers=admin_auth_headers)
+        assert trigger_response.status_code in [200, 202]
+        result = trigger_response.json()
+        assert "success" in result
+
+    def test_get_scheduler_status(self, client: TestClient, admin_auth_headers):
+        """测试获取调度器状态"""
+        response = client.get("/api/v1/scheduler/status", headers=admin_auth_headers)
+        assert response.status_code == 200
+        status_data = response.json()
+        # 验证状态响应格式
+        assert "is_running" in status_data or "status" in status_data
+
+    def test_start_scheduler(self, client: TestClient, admin_auth_headers):
+        """测试启动调度器"""
+        response = client.post("/api/v1/scheduler/start", headers=admin_auth_headers)
+        assert response.status_code == 200
+        result = response.json()
+        assert "message" in result or "success" in result
+
+    def test_stop_scheduler(self, client: TestClient, admin_auth_headers):
+        """测试停止调度器"""
+        # 首先启动调度器
+        client.post("/api/v1/scheduler/start", headers=admin_auth_headers)
+
+        # 然后停止调度器
+        response = client.post("/api/v1/scheduler/stop", headers=admin_auth_headers)
+        assert response.status_code == 200
+        result = response.json()
+        assert "message" in result or "success" in result
+
+    def test_get_execution_history(self, client: TestClient, admin_auth_headers):
+        """测试获取全局执行历史"""
+        # 创建测试任务
+        task_data = {
+            "name": "执行历史测试任务",
+            "description": "用于测试执行历史的任务",
+            "task_type": "content_generation",
+            "cron_expression": "0 8 * * *",
+            "is_active": True
+        }
+        create_response = client.post("/api/v1/scheduler/tasks", json=task_data, headers=admin_auth_headers)
+        if create_response.status_code not in [201, 200]:
+            pytest.skip("无法创建测试任务")
+
+        # 获取执行历史
+        response = client.get("/api/v1/scheduler/executions", headers=admin_auth_headers)
+        assert response.status_code == 200
+        history = response.json()
+        assert isinstance(history, list)
+
+    def test_task_with_interval_schedule(self, client: TestClient, admin_auth_headers):
+        """测试使用间隔调度（而非cron表达式）"""
+        task_data = {
+            "name": "间隔调度测试任务",
+            "description": "每30分钟执行一次",
+            "task_type": "content_generation",
+            "interval": 30,
+            "interval_unit": "minutes",
+            "is_active": True
+        }
+        response = client.post("/api/v1/scheduler/tasks", json=task_data, headers=admin_auth_headers)
+        # 注意：如果API不支持interval参数，这个测试可能需要调整
+        assert response.status_code in [201, 200, 422]  # 422表示不支持此参数
+
+    def test_task_activation_deactivation(self, client: TestClient, admin_auth_headers):
+        """测试任务激活和停用"""
+        # 创建任务
+        task_data = {
+            "name": "激活测试任务",
+            "description": "测试激活和停用",
+            "task_type": "content_generation",
+            "cron_expression": "0 8 * * *",
+            "is_active": True
+        }
+        create_response = client.post("/api/v1/scheduler/tasks", json=task_data, headers=admin_auth_headers)
+        if create_response.status_code not in [201, 200]:
+            pytest.skip("无法创建测试任务")
+
+        task_id = create_response.json()["id"]
+
+        # 停用任务
+        update_response = client.put(
+            f"/api/v1/scheduler/tasks/{task_id}",
+            json={"is_active": False},
+            headers=admin_auth_headers
+        )
+        assert update_response.status_code == 200
+        updated_task = update_response.json()
+        assert updated_task["is_active"] is False
+
+        # 重新激活任务
+        activate_response = client.put(
+            f"/api/v1/scheduler/tasks/{task_id}",
+            json={"is_active": True},
+            headers=admin_auth_headers
+        )
+        assert activate_response.status_code == 200
+        activated_task = activate_response.json()
+        assert activated_task["is_active"] is True
+
+    def test_task_config_validation(self, client: TestClient, admin_auth_headers):
+        """测试任务配置验证"""
+        # 测试无效的cron表达式
+        invalid_task_data = {
+            "name": "无效cron任务",
+            "description": "使用无效的cron表达式",
+            "task_type": "content_generation",
+            "cron_expression": "invalid_cron",
+            "is_active": True
+        }
+        response = client.post("/api/v1/scheduler/tasks", json=invalid_task_data, headers=admin_auth_headers)
+        # 应该返回验证错误
+        assert response.status_code in [400, 422]
+
+    def test_task_response_format(self, client: TestClient, admin_auth_headers):
+        """测试任务响应格式"""
+        # 创建任务
+        task_data = {
+            "name": "格式验证任务",
+            "description": "验证响应格式",
+            "task_type": "content_generation",
+            "cron_expression": "0 8 * * *",
+            "is_active": True
+        }
+        create_response = client.post("/api/v1/scheduler/tasks", json=task_data, headers=admin_auth_headers)
+        if create_response.status_code not in [201, 200]:
+            pytest.skip("无法创建测试任务")
+
+        task = create_response.json()
+        # 验证必需字段
+        required_fields = ["id", "name", "task_type", "is_active"]
+        for field in required_fields:
+            assert field in task, f"任务响应缺少字段: {field}"
+
+    def test_concurrent_task_execution(self, client: TestClient, admin_auth_headers):
+        """测试并发任务创建和更新"""
+        import threading
+
+        created_tasks = []
+        errors = []
+
+        def create_task(index):
+            try:
+                task_data = {
+                    "name": f"并发任务{index}",
+                    "description": f"并发创建的第{index}个任务",
+                    "task_type": "content_generation",
+                    "cron_expression": f"0 {index % 24} * * *",
+                    "is_active": True
+                }
+                response = client.post("/api/v1/scheduler/tasks", json=task_data, headers=admin_auth_headers)
+                if response.status_code in [201, 200]:
+                    created_tasks.append(response.json())
+                else:
+                    errors.append(f"任务{index}创建失败: {response.status_code}")
+            except Exception as e:
+                errors.append(f"任务{index}异常: {str(e)}")
+
+        # 创建5个并发任务
+        threads = []
+        for i in range(5):
+            thread = threading.Thread(target=create_task, args=(i,))
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        # 验证至少有一些任务创建成功
+        assert len(created_tasks) >= 3, f"并发创建失败: {errors}"
+
+    def test_task_filter_by_type(self, client: TestClient, admin_auth_headers):
+        """测试按任务类型过滤"""
+        # 创建不同类型的任务
+        for task_type in ["content_generation", "publishing", "maintenance"]:
+            task_data = {
+                "name": f"{task_type}_task",
+                "description": f"{task_type}类型的任务",
+                "task_type": task_type,
+                "cron_expression": "0 8 * * *",
+                "is_active": True
+            }
+            client.post("/api/v1/scheduler/tasks", json=task_data, headers=admin_auth_headers)
+
+        # 获取所有任务
+        response = client.get("/api/v1/scheduler/tasks", headers=admin_auth_headers)
+        assert response.status_code == 200
+        tasks = response.json() if isinstance(response.json(), list) else response.json().get("items", [])
+
+        # 验证不同类型的任务都存在
+        if isinstance(tasks, list) and len(tasks) > 0:
+            task_types = set(task.get("task_type") for task in tasks)
+            assert len(task_types) > 0

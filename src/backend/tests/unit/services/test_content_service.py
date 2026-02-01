@@ -172,17 +172,23 @@ def test_get_content_list(db_session: Session, test_customer: Customer):
     db_session.commit()
     
     # 获取内容列表
-    content_list = content_service.get_content_list(db_session)
-    
-    # 验证内容列表
+    content_list_response = content_service.get_content_list(db_session)
+
+    # 验证内容列表（分页格式）
+    assert "items" in content_list_response
+    assert "total" in content_list_response
+    assert "page" in content_list_response
+    assert "pageSize" in content_list_response
+
+    content_list = content_list_response["items"]
     assert len(content_list) >= 3
-    
+
     # 检查是否包含我们创建的内容
     created_titles = [f"测试文章{i}" for i in range(3)]
     for content in content_list:
         if content.title in created_titles:
             created_titles.remove(content.title)
-    
+
     assert len(created_titles) == 0
     
     print(f"✓ 内容列表查询测试通过 (共 {len(content_list)} 篇内容)")
@@ -406,8 +412,8 @@ def test_content_service_operations(db_session: Session, test_customer: Customer
         assert content is not None
     
     # 查询内容列表
-    content_list = content_service.get_content_list(db_session)
-    assert len(content_list) >= 1
+    content_list_response = content_service.get_content_list(db_session)
+    assert content_list_response["total"] >= 1
     
     # 更新内容
     update_data = {"description": "这是一篇综合测试文章"}

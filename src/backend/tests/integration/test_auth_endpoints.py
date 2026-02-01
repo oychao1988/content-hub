@@ -302,7 +302,10 @@ class TestAuthLogin:
             json=login_data
         )
 
-        assert response.status_code == 422
+        print(f"响应状态码: {response.status_code}")
+        print(f"响应内容: {response.text}")
+        assert response.status_code == 400
+        assert "邮箱或用户名不能为空" in response.json()["error"]["message"]
 
 
 class TestAuthRefresh:
@@ -357,7 +360,7 @@ class TestAuthRefresh:
         )
 
         assert response.status_code == 401
-        assert "无效的刷新令牌" in response.json()["detail"]
+        assert "无效的刷新令牌" in response.json()["error"]["message"]
 
 
 class TestAuthMe:
@@ -411,7 +414,28 @@ class TestAuthLogout:
 
     def test_logout(self, client: TestClient):
         """测试用户登出"""
-        response = client.post("/api/v1/auth/logout")
+        # 先注册并登录用户
+        user_data = {
+            "email": "logout@example.com",
+            "username": "logoutuser",
+            "password": "logoutpass123"
+        }
+        client.post("/api/v1/auth/register", json=user_data)
+
+        login_response = client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": "logout@example.com",
+                "password": "logoutpass123"
+            }
+        )
+        access_token = login_response.json()["data"]["access_token"]
+
+        # 使用令牌登出
+        response = client.post(
+            "/api/v1/auth/logout",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
 
         assert response.status_code == 204
         assert response.content == b""
@@ -523,7 +547,9 @@ class TestAuthResetPassword:
         )
 
         assert response.status_code == 400
-        assert "无效或过期的重置令牌" in response.json()["detail"]
+        data = response.json()
+        assert data["success"] is False
+        assert "无效或过期的重置令牌" in data["error"]["message"]
 
 
 class TestAuthVerifyToken:
@@ -574,7 +600,9 @@ class TestAuthVerifyToken:
         )
 
         assert response.status_code == 400
-        assert "无效或过期的重置令牌" in response.json()["detail"]
+        data = response.json()
+        assert data["success"] is False
+        assert "无效或过期的重置令牌" in data["error"]["message"]
 
 
 class TestAuthWorkflow:
@@ -632,7 +660,10 @@ class TestAuthWorkflow:
         assert me_response2.status_code == 200
 
         # 6. 登出
-        logout_response = client.post("/api/v1/auth/logout")
+        logout_response = client.post(
+            "/api/v1/auth/logout",
+            headers={"Authorization": f"Bearer {new_access_token}"}
+        )
         assert logout_response.status_code == 204
 
     def test_password_reset_workflow(self, client: TestClient):

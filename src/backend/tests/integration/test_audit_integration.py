@@ -6,10 +6,10 @@ from datetime import date
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.main import app
+from app.factory import create_app
 from app.models.audit_log import AuditLog
 from app.models.user import User
-from app.core.security import create_access_token, hash_password
+from app.core.security import create_access_token, get_password_hash, create_salt
 
 
 class TestAuditIntegration:
@@ -222,10 +222,11 @@ class TestAuditIntegration:
 @pytest.fixture
 def test_user(db_session: Session):
     """创建测试用户"""
+    salt = create_salt()
     user = User(
         username="testuser",
         email="test@example.com",
-        password_hash=hash_password("testpass123"),
+        password_hash=get_password_hash("testpass123", salt),
         full_name="Test User",
         role="operator",
         is_active=True
@@ -239,10 +240,11 @@ def test_user(db_session: Session):
 @pytest.fixture
 def admin_user(db_session: Session):
     """创建管理员用户"""
+    salt = create_salt()
     user = User(
         username="admin",
         email="admin@example.com",
-        password_hash=hash_password("adminpass123"),
+        password_hash=get_password_hash("adminpass123", salt),
         full_name="Admin User",
         role="admin",
         is_active=True
@@ -256,10 +258,11 @@ def admin_user(db_session: Session):
 @pytest.fixture
 def operator_user(db_session: Session):
     """创建操作员用户"""
+    salt = create_salt()
     user = User(
         username="operator",
         email="operator@example.com",
-        password_hash=hash_password("operatorpass123"),
+        password_hash=get_password_hash("operatorpass123", salt),
         full_name="Operator User",
         role="operator",
         is_active=True
@@ -274,6 +277,8 @@ def operator_user(db_session: Session):
 def client(db_session: Session):
     """创建测试客户端"""
     from app.db.database import get_db
+
+    app = create_app()
 
     def override_get_db():
         try:

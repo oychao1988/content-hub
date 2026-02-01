@@ -12,7 +12,9 @@ from sqlalchemy.pool import StaticPool
 # 添加项目根目录到 Python 路径
 sys.path.append(str(Path(__file__).parent.parent))
 
-from app.db.database import Base, get_db
+from app.db.sql_db import Base
+from app.db.database import get_db as database_get_db
+from app.db.sql_db import get_db as sql_db_get_db
 import main
 from app.models.user import User
 from app.core.security import create_salt, get_password_hash
@@ -31,6 +33,8 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 @pytest.fixture(scope="function")
 def test_db() -> None:
     """创建并销毁测试数据库。"""
+    # 导入所有模型以注册到 Base.metadata
+    import app.models  # noqa: F401
     # 创建所有表
     Base.metadata.create_all(bind=engine)
     yield
@@ -58,42 +62,44 @@ def client(db_session) -> Generator:
         finally:
             pass
 
-    main.app.dependency_overrides[get_db] = override_get_db
+    # Override both get_db functions (from database.py and sql_db.py)
+    main.app.dependency_overrides[database_get_db] = override_get_db
+    main.app.dependency_overrides[sql_db_get_db] = override_get_db
 
     with TestClient(main.app) as test_client:
         yield test_client
 
 
 @pytest.fixture(scope="function")
-def test_user(db_session: sessionmaker):
+def test_user(db_session: sessionmaker, role: str = "operator"):
     """测试用户数据（返回 User 模型实例）。"""
     salt = create_salt()
     user_data = {
-        "username": "testuser",
-        "email": "test@example.com",
-        "full_name": "Test User",
+        "username": f"testuser_{role}",
+        "email": f"test_{role}@example.com",
+        "full_name": f"Test User ({role})",
         "password_hash": get_password_hash("testpassword123", salt),
-        "role": "operator",
+        "role": role,
         "is_active": True
     }
     user = User(**user_data)
     db_session.add(user)
     db_session.commit()
     db_session.refresh(user)
-    
+
     yield user
-    
+
     # 清理测试用户
     db_session.delete(user)
     db_session.commit()
 
 
 @pytest.fixture(scope="function")
-def test_user_data():
+def test_user_data(role: str = "operator"):
     """测试用户数据（返回字典）。"""
     return {
-        "username": "testuser",
-        "email": "test@example.com",
+        "username": f"testuser_{role}",
+        "email": f"test_{role}@example.com",
         "password": "testpassword123",
     }
 
@@ -111,10 +117,172 @@ def auth_headers(client, test_user_data):
         }
         login_response = client.post("/api/v1/auth/login", data=login_data)
         if login_response.status_code == 200:
-            token = login_response.json()["access_token"]
+            token = login_response.json()["data"]["access_token"]
             return {"Authorization": f"Bearer {token}"}
 
     return None
+
+
+@pytest.fixture(scope="function")
+def admin_auth_headers(client, db_session):
+    """获取管理员用户认证头部。"""
+    from app.models.user import User
+    from app.core.security import create_salt, get_password_hash
+
+    # 直接在数据库中创建用户（避免 API 注册的问题）
+    existing_user = db_session.query(User).filter(User.username == "adminuser").first()
+    if not existing_user:
+        salt = create_salt()
+        user_data = {
+            "username": "adminuser",
+            "email": "admin@example.com",
+            "full_name": "Admin User",
+            "password_hash": get_password_hash("testpassword123", salt),
+            "role": "admin",
+            "is_active": True
+        }
+        existing_user = User(**user_data)
+        db_session.add(existing_user)
+        db_session.commit()
+        db_session.refresh(existing_user)
+
+    print(f"=== 调试信息 ===")
+    print(f"用户是否存在: {existing_user is not None}")
+    if existing_user:
+        print(f"用户名: {existing_user.username}")
+        print(f"邮箱: {existing_user.email}")
+        print(f"角色: {existing_user.role}")
+        print(f"密码哈希: {existing_user.password_hash}")
+        print(f"是否激活: {existing_user.is_active}")
+
+    # 然后登录获取 token
+    login_data = {
+        "username": "adminuser",
+        "password": "testpassword123",
+    }
+    login_response = client.post("/api/v1/auth/login", data=login_data)
+    print(f"登录状态码: {login_response.status_code}")
+    print(f"登录响应: {login_response.json()}")
+
+    if login_response.status_code == 200:
+        token = login_response.json()["data"]["access_token"]
+        return {"Authorization": f"Bearer {token}"}
+
+    return None
+
+
+@pytest.fixture(scope="function")
+def operator_auth_headers(client, db_session):
+    """获取操作员用户认证头部。"""
+    from app.models.user import User
+    from app.core.security import create_salt, get_password_hash
+
+    # 直接在数据库中创建用户（避免 API 注册的问题）
+    existing_user = db_session.query(User).filter(User.username == "operatoruser").first()
+    if not existing_user:
+        salt = create_salt()
+        user_data = {
+            "username": "operatoruser",
+            "email": "operator@example.com",
+            "full_name": "Operator User",
+            "password_hash": get_password_hash("testpassword123", salt),
+            "role": "operator",
+            "is_active": True
+        }
+        existing_user = User(**user_data)
+        db_session.add(existing_user)
+        db_session.commit()
+        db_session.refresh(existing_user)
+
+    # 然后登录获取 token
+    login_data = {
+        "username": "operatoruser",
+        "password": "testpassword123",
+    }
+    login_response = client.post("/api/v1/auth/login", data=login_data)
+    if login_response.status_code == 200:
+        token = login_response.json()["data"]["access_token"]
+        return {"Authorization": f"Bearer {token}"}
+
+    return None
+
+
+@pytest.fixture(scope="function")
+def editor_auth_headers(client, db_session):
+    """获取编辑用户认证头部。"""
+    from app.models.user import User
+    from app.core.security import create_salt, get_password_hash
+
+    # 直接在数据库中创建用户（避免 API 注册的问题）
+    existing_user = db_session.query(User).filter(User.username == "editoruser").first()
+    if not existing_user:
+        salt = create_salt()
+        user_data = {
+            "username": "editoruser",
+            "email": "editor@example.com",
+            "full_name": "Editor User",
+            "password_hash": get_password_hash("testpassword123", salt),
+            "role": "editor",
+            "is_active": True
+        }
+        existing_user = User(**user_data)
+        db_session.add(existing_user)
+        db_session.commit()
+        db_session.refresh(existing_user)
+
+    # 然后登录获取 token
+    login_data = {
+        "username": "editoruser",
+        "password": "testpassword123",
+    }
+    login_response = client.post("/api/v1/auth/login", data=login_data)
+    if login_response.status_code == 200:
+        token = login_response.json()["data"]["access_token"]
+        return {"Authorization": f"Bearer {token}"}
+
+    return None
+
+
+@pytest.fixture(scope="function")
+def viewer_auth_headers(client, db_session):
+    """获取查看用户认证头部。"""
+    from app.models.user import User
+    from app.core.security import create_salt, get_password_hash
+
+    # 直接在数据库中创建用户（避免 API 注册的问题）
+    existing_user = db_session.query(User).filter(User.username == "vieweruser").first()
+    if not existing_user:
+        salt = create_salt()
+        user_data = {
+            "username": "vieweruser",
+            "email": "viewer@example.com",
+            "full_name": "Viewer User",
+            "password_hash": get_password_hash("testpassword123", salt),
+            "role": "viewer",
+            "is_active": True
+        }
+        existing_user = User(**user_data)
+        db_session.add(existing_user)
+        db_session.commit()
+        db_session.refresh(existing_user)
+
+    # 然后登录获取 token
+    login_data = {
+        "username": "vieweruser",
+        "password": "testpassword123",
+    }
+    login_response = client.post("/api/v1/auth/login", data=login_data)
+    if login_response.status_code == 200:
+        token = login_response.json()["data"]["access_token"]
+        return {"Authorization": f"Bearer {token}"}
+
+    return None
+
+
+@pytest.fixture(scope="function")
+def invalid_auth_headers():
+    """获取无效的认证头部。"""
+    return {"Authorization": "Bearer invalid_token"}
 
 
 @pytest.fixture(scope="function")

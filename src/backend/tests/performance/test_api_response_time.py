@@ -18,7 +18,7 @@ from httpx import Client
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.core.security import create_password_hash
+from app.core.security import get_password_hash, create_salt
 from app.models.user import User
 
 
@@ -40,10 +40,11 @@ def auth_token(test_client, db_session):
     # 确保测试用户存在
     user = db_session.query(User).filter(User.username == "admin").first()
     if not user:
+        salt = create_salt()
         user = User(
             username="admin",
             email="admin@test.com",
-            password_hash=create_password_hash("admin123"),
+            password_hash=get_password_hash("admin123", salt),
             role="admin",
             is_active=True
         )

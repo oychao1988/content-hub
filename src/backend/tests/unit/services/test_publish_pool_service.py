@@ -334,3 +334,276 @@ def test_publish_pool_service_operations(db_session: Session, test_customer: obj
     assert updated_entry.priority == 8
 
     print("✓ 发布池管理服务综合测试通过")
+
+
+@pytest.mark.unit
+def test_publish_pool_new_fields(db_session: Session, test_customer: object):
+    """测试发布池新增字段：status, retry_count, max_retries, last_error, published_at, published_log_id"""
+    # 创建测试平台和账号
+    platform = Platform(
+        name="新字段测试平台",
+        code="new_fields_platform",
+        type="social_media",
+        description="用于测试新字段的平台",
+        api_url="https://api.newfields.com",
+        api_key="new_fields_api_key",
+        is_active=True
+    )
+    db_session.add(platform)
+    db_session.commit()
+
+    account = Account(
+        customer_id=test_customer.id,
+        platform_id=platform.id,
+        name="新字段测试账号",
+        directory_name="new_fields_test_account",
+        description="用于测试新字段的账号",
+        is_active=True
+    )
+    db_session.add(account)
+    db_session.commit()
+
+    # 创建测试内容
+    content = Content(
+        account_id=account.id,
+        title="新字段测试文章",
+        content="# 新字段测试内容\n这是一篇用于测试新字段的文章",
+        category="科技",
+        topic="新字段测试选题",
+        word_count=300,
+        publish_status="published",
+        review_status="approved"
+    )
+    db_session.add(content)
+    db_session.commit()
+
+    # 创建发布池条目，测试所有新字段
+    pool_entry = PublishPool(
+        content_id=content.id,
+        priority=5,
+        scheduled_at=datetime(2024, 12, 31, 10, 0, 0),
+        status="pending",  # 新字段：状态
+        retry_count=0,  # 新字段：重试次数
+        max_retries=3,  # 新字段：最大重试次数
+        last_error=None,  # 新字段：最后错误
+        published_at=None,  # 新字段：发布时间
+        published_log_id=None  # 新字段：发布日志ID
+    )
+    db_session.add(pool_entry)
+    db_session.commit()
+
+    # 验证新字段
+    assert pool_entry.status == "pending"
+    assert pool_entry.retry_count == 0
+    assert pool_entry.max_retries == 3
+    assert pool_entry.last_error is None
+    assert pool_entry.published_at is None
+    assert pool_entry.published_log_id is None
+    assert pool_entry.added_at is not None
+
+    print(f"✓ 发布池新字段测试通过 (ID: {pool_entry.id})")
+
+
+@pytest.mark.unit
+def test_publish_pool_status_transitions(db_session: Session, test_customer: object):
+    """测试发布池状态转换：pending -> publishing -> published/failed"""
+    # 创建测试平台和账号
+    platform = Platform(
+        name="状态转换测试平台",
+        code="status_transition_platform",
+        type="social_media",
+        description="用于测试状态转换的平台",
+        api_url="https://api.status.com",
+        api_key="status_api_key",
+        is_active=True
+    )
+    db_session.add(platform)
+    db_session.commit()
+
+    account = Account(
+        customer_id=test_customer.id,
+        platform_id=platform.id,
+        name="状态转换测试账号",
+        directory_name="status_transition_account",
+        description="用于测试状态转换的账号",
+        is_active=True
+    )
+    db_session.add(account)
+    db_session.commit()
+
+    # 创建测试内容
+    content = Content(
+        account_id=account.id,
+        title="状态转换测试文章",
+        content="# 状态转换测试内容\n这是一篇用于测试状态转换的文章",
+        category="科技",
+        topic="状态转换测试选题",
+        word_count=300,
+        publish_status="published",
+        review_status="approved"
+    )
+    db_session.add(content)
+    db_session.commit()
+
+    # 创建发布池条目
+    pool_entry = PublishPool(
+        content_id=content.id,
+        priority=5,
+        scheduled_at=datetime(2024, 12, 31, 10, 0, 0)
+    )
+    db_session.add(pool_entry)
+    db_session.commit()
+
+    # 初始状态：pending
+    assert pool_entry.status == "pending"
+
+    # 状态转换：pending -> publishing
+    update_data = {"status": "publishing"}
+    updated_entry = publish_pool_manager_service.update_pool_entry(db_session, pool_entry.id, update_data)
+    assert updated_entry.status == "publishing"
+
+    # 模拟发布成功：publishing -> published
+    update_data = {
+        "status": "published",
+        "published_at": datetime.utcnow()
+    }
+    updated_entry = publish_pool_manager_service.update_pool_entry(db_session, pool_entry.id, update_data)
+    assert updated_entry.status == "published"
+    assert updated_entry.published_at is not None
+
+    print(f"✓ 发布池状态转换测试通过 (ID: {pool_entry.id})")
+
+
+@pytest.mark.unit
+def test_publish_pool_retry_mechanism(db_session: Session, test_customer: object):
+    """测试发布池重试机制"""
+    # 创建测试平台和账号
+    platform = Platform(
+        name="重试机制测试平台",
+        code="retry_platform",
+        type="social_media",
+        description="用于测试重试机制的平台",
+        api_url="https://api.retry.com",
+        api_key="retry_api_key",
+        is_active=True
+    )
+    db_session.add(platform)
+    db_session.commit()
+
+    account = Account(
+        customer_id=test_customer.id,
+        platform_id=platform.id,
+        name="重试机制测试账号",
+        directory_name="retry_test_account",
+        description="用于测试重试机制的账号",
+        is_active=True
+    )
+    db_session.add(account)
+    db_session.commit()
+
+    # 创建测试内容
+    content = Content(
+        account_id=account.id,
+        title="重试机制测试文章",
+        content="# 重试机制测试内容\n这是一篇用于测试重试机制的文章",
+        category="科技",
+        topic="重试机制测试选题",
+        word_count=300,
+        publish_status="published",
+        review_status="approved"
+    )
+    db_session.add(content)
+    db_session.commit()
+
+    # 创建发布池条目
+    pool_entry = PublishPool(
+        content_id=content.id,
+        priority=5,
+        scheduled_at=datetime(2024, 12, 31, 10, 0, 0),
+        max_retries=3
+    )
+    db_session.add(pool_entry)
+    db_session.commit()
+
+    # 模拟第一次失败
+    update_data = {
+        "status": "failed",
+        "retry_count": 1,
+        "last_error": "连接超时"
+    }
+    updated_entry = publish_pool_manager_service.update_pool_entry(db_session, pool_entry.id, update_data)
+    assert updated_entry.status == "failed"
+    assert updated_entry.retry_count == 1
+    assert updated_entry.last_error == "连接超时"
+
+    # 模拟第二次失败
+    update_data = {
+        "retry_count": 2,
+        "last_error": "API 错误: 500"
+    }
+    updated_entry = publish_pool_manager_service.update_pool_entry(db_session, pool_entry.id, update_data)
+    assert updated_entry.retry_count == 2
+    assert updated_entry.last_error == "API 错误: 500"
+
+    # 验证未超过最大重试次数
+    assert updated_entry.retry_count < updated_entry.max_retries
+
+    print(f"✓ 发布池重试机制测试通过 (ID: {pool_entry.id})")
+
+
+@pytest.mark.unit
+def test_publish_pool_added_at_field(db_session: Session, test_customer: object):
+    """测试 added_at 字段（从 created_at 重命名而来）"""
+    # 创建测试平台和账号
+    platform = Platform(
+        name="added_at测试平台",
+        code="added_at_platform",
+        type="social_media",
+        description="用于测试added_at字段",
+        api_url="https://api.addedat.com",
+        api_key="added_at_api_key",
+        is_active=True
+    )
+    db_session.add(platform)
+    db_session.commit()
+
+    account = Account(
+        customer_id=test_customer.id,
+        platform_id=platform.id,
+        name="added_at测试账号",
+        directory_name="added_at_test_account",
+        description="用于测试added_at字段",
+        is_active=True
+    )
+    db_session.add(account)
+    db_session.commit()
+
+    # 创建测试内容
+    content = Content(
+        account_id=account.id,
+        title="added_at测试文章",
+        content="# added_at测试内容\n这是一篇用于测试added_at字段的文章",
+        category="科技",
+        topic="added_at测试选题",
+        word_count=300,
+        publish_status="published",
+        review_status="approved"
+    )
+    db_session.add(content)
+    db_session.commit()
+
+    # 创建发布池条目
+    pool_entry = publish_pool_manager_service.add_to_pool(
+        db_session, content.id, priority=5, scheduled_at=datetime(2024, 12, 31, 10, 0, 0)
+    )
+
+    # 验证 added_at 字段存在且不为空
+    assert hasattr(pool_entry, 'added_at')
+    assert pool_entry.added_at is not None
+    assert isinstance(pool_entry.added_at, datetime)
+
+    # 验证 added_at 是最近创建的时间（在1分钟内）
+    time_diff = datetime.utcnow() - pool_entry.added_at.replace(tzinfo=None)
+    assert time_diff.total_seconds() < 60
+
+    print(f"✓ added_at 字段测试通过 (ID: {pool_entry.id}, added_at: {pool_entry.added_at})")
