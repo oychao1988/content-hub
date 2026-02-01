@@ -78,7 +78,7 @@ export const resumeTask = (id) => {
 // 立即执行任务
 export const executeTask = (id) => {
   return request({
-    url: `/scheduler/tasks/${id}/execute`,
+    url: `/scheduler/tasks/${id}/trigger`,
     method: 'post'
   })
 }
