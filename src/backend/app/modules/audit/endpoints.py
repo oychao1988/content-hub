@@ -17,7 +17,7 @@ from app.modules.audit.schemas import (
     AuditLogExportRequest,
     AuditStatisticsResponse,
 )
-from app.core.permissions import require_permission, Permission
+from app.core.permissions import require_permission, Permission, has_permission
 from app.utils.custom_logger import log
 
 router = APIRouter()
@@ -42,7 +42,8 @@ async def get_audit_logs(
     需要权限：audit:view
     """
     # 检查权限
-    require_permission(current_user, Permission.AUDIT_VIEW)
+    if not has_permission(current_user, Permission.AUDIT_VIEW):
+        raise HTTPException(status_code=403, detail="权限不足，需要audit:view权限")
 
     try:
         # 构建过滤条件
@@ -117,7 +118,8 @@ async def get_audit_log_detail(
     需要权限：audit:view
     """
     # 检查权限
-    require_permission(current_user, Permission.AUDIT_VIEW)
+    if not has_permission(current_user, Permission.AUDIT_VIEW):
+        raise HTTPException(status_code=403, detail="权限不足，需要audit:view权限")
 
     try:
         log_entry = AuditService.get_audit_log_by_id(db, log_id)
@@ -157,7 +159,8 @@ async def export_audit_logs(
     需要权限：audit:export
     """
     # 检查权限
-    require_permission(current_user, Permission.AUDIT_EXPORT)
+    if not has_permission(current_user, Permission.AUDIT_EXPORT):
+        raise HTTPException(status_code=403, detail="权限不足，需要audit:export权限")
 
     try:
         # 构建过滤条件
@@ -209,7 +212,8 @@ async def get_audit_statistics(
     需要权限：audit:view
     """
     # 检查权限
-    require_permission(current_user, Permission.AUDIT_VIEW)
+    if not has_permission(current_user, Permission.AUDIT_VIEW):
+        raise HTTPException(status_code=403, detail="权限不足，需要audit:view权限")
 
     try:
         # 解析日期
