@@ -4,7 +4,7 @@
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.db.database import Base
+from app.db.sql_db import Base
 
 
 class Content(Base):
@@ -17,7 +17,9 @@ class Content(Base):
 
     # 内容基本信息
     title = Column(String(255), nullable=False, comment="文章标题")
+    content_type = Column(String(50), comment="内容类型")
     content = Column(Text, nullable=False, comment="文章内容（Markdown）")
+    summary = Column(Text, comment="摘要")
     image_url = Column(String(255), comment="图片 URL")
     image_path = Column(String(255), comment="本地图片路径")
     section_code = Column(String(50), comment="板块代码")
@@ -26,6 +28,7 @@ class Content(Base):
     word_count = Column(Integer, default=0, comment="字数")
     cover_image = Column(String(255), comment="封面图片")
     images = Column(JSON, default=[], comment="图片列表")
+    tags = Column(JSON, default=[], comment="标签列表")
 
     # 审核相关字段
     review_mode = Column(String(20), default="auto", comment="审核模式：auto/manual")

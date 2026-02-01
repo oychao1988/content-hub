@@ -3,7 +3,7 @@
 """
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Index
 from sqlalchemy.sql import func
-from app.db.database import Base
+from app.db.sql_db import Base
 
 
 class AuditLog(Base):
