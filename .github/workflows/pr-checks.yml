@@ -1,0 +1,308 @@
+# GitHub Actions PR 检查工作流
+# 基于 GitHub Flow 模型的 CI/CD 自动化
+
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+# 并发控制：同一 PR 的多次提交只保留最新运行
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 前端代码检查和测试
+  frontend-test:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史用于 blame
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd src/frontend
+          npm ci
+
+      - name: Code style check
+        run: |
+          cd src/frontend
+          npm run format:check || echo "⚠️  Code formatting issues found. Run 'npm run format' to fix."
+
+      - name: Lint check
+        run: |
+          cd src/frontend
+          npm run lint || echo "⚠️  Linting issues found. Please fix before merging."
+
+      - name: Type check
+        run: |
+          cd src/frontend
+          npm run type-check || echo "⚠️  TypeScript errors found."
+
+      - name: Run unit tests
+        run: |
+          cd src/frontend
+          npm test -- --coverage --watchAll=false
+
+      - name: Build check
+        run: |
+          cd src/frontend
+          npm run build
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: src/frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+
+  # 后端代码检查和测试
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: src/backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          cd src/backend
+          pip install -r requirements.txt
+
+      - name: Code style check
+        run: |
+          cd src/backend
+          black --check . || echo "⚠️  Code formatting issues found. Run 'black .' to fix."
+          isort --check-only . || echo "⚠️  Import sorting issues found. Run 'isort .' to fix."
+
+      - name: Lint check
+        run: |
+          cd src/backend
+          flake8 . || echo "⚠️  Flake8 issues found."
+          pylint app || echo "⚠️  Pylint issues found."
+
+      - name: Type check
+        run: |
+          cd src/backend
+          mypy app || echo "⚠️  Type check issues found."
+
+      - name: Run unit tests
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test_db
+        run: |
+          cd src/backend
+          pytest --cov=app --cov-report=xml --cov-report=html
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: src/backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+
+  # 安全检查
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+
+  # 提交信息规范检查
+  commitlint:
+    name: Commit Message Check
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.commits > 0
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install commitlint
+        run: |
+          npm install -g @commitlint/cli @commitlint/config-conventional
+
+      - name: Validate commit messages
+        run: |
+          echo "Checking commit messages for PR #${{ github.event.pull_request.number }}"
+
+          # 获取 PR 的所有提交
+          COMMITS=$(git log --format=%H origin/main..HEAD)
+
+          # 检查每个提交
+          for COMMIT in $COMMITS; do
+            echo "Checking commit: $COMMIT"
+            git log -1 --pretty=%B $COMMIT | commitlint
+          done
+
+  # PR 质量检查
+  pr-quality-check:
+    name: PR Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check PR description
+        run: |
+          DESC="${{ github.event.pull_request.body }}"
+
+          # 检查 PR 描述是否存在
+          if [ -z "$DESC" ]; then
+            echo "❌ PR description is required!"
+            echo "Please provide a detailed description of your changes."
+            exit 1
+          fi
+
+          # 检查 PR 描述长度
+          DESC_LEN=$(echo -n "$DESC" | wc -c)
+          if [ "$DESC_LEN" -lt 50 ]; then
+            echo "⚠️  PR description is too short. Please provide more details."
+            exit 1
+          fi
+
+          echo "✅ PR description check passed."
+
+      - name: Check PR size
+        run: |
+          # 计算 PR 的代码行数变更
+          ADDED=$(git diff --shortstat origin/main...HEAD | grep -o '[0-9]* insertion' | grep -o '[0-9]*' || echo 0)
+          DELETED=$(git diff --shortstat origin/main...HEAD | grep -o '[0-9]* deletion' | grep -o '[0-9]*' || echo 0)
+          TOTAL=$((ADDED + DELETED))
+
+          echo "Lines changed: $TOTAL"
+
+          if [ "$TOTAL" -gt 2000 ]; then
+            echo "⚠️  Large PR detected ($TOTAL lines changed)."
+            echo "Consider splitting into smaller PRs for easier review."
+          else
+            echo "✅ PR size check passed."
+          fi
+
+      - name: Check for TODO comments
+        run: |
+          TODO_COUNT=$(git diff origin/main...HEAD | grep -c "TODO" || echo 0)
+
+          if [ "$TODO_COUNT" -gt 0 ]; then
+            echo "⚠️  Found $TODO_COUNT TODO comments in the changes."
+            echo "Please resolve or create issues for them."
+          else
+            echo "✅ No TODO comments found."
+          fi
+
+  # 最终汇总
+  summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    needs: [frontend-test, backend-test, security-scan, commitlint, pr-quality-check]
+    if: always()
+
+    steps:
+      - name: Check all jobs
+        run: |
+          echo "## PR Check Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Frontend tests
+          if [ "${{ needs.frontend-test.result }}" == "success" ]; then
+            echo "✅ Frontend Tests: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Frontend Tests: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Backend tests
+          if [ "${{ needs.backend-test.result }}" == "success" ]; then
+            echo "✅ Backend Tests: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Backend Tests: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Security scan
+          if [ "${{ needs.security-scan.result }}" == "success" ]; then
+            echo "✅ Security Scan: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️  Security Scan: WARNINGS" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Commitlint
+          if [ "${{ needs.commitlint.result }}" == "success" ]; then
+            echo "✅ Commit Messages: VALID" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Commit Messages: INVALID" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # PR quality
+          if [ "${{ needs.pr-quality-check.result }}" == "success" ]; then
+            echo "✅ PR Quality: GOOD" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️  PR Quality: NEEDS IMPROVEMENT" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review the failed checks above" >> $GITHUB_STEP_SUMMARY
+          echo "2. Fix any issues locally" >> $GITHUB_STEP_SUMMARY
+          echo "3. Push your changes to update this PR" >> $GITHUB_STEP_SUMMARY
+          echo "4. Wait for all checks to pass before merging" >> $GITHUB_STEP_SUMMARY

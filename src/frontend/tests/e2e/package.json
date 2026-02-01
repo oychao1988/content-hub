@@ -1,0 +1,8 @@
+{
+  "name": "contenthub-e2e-tests",
+  "version": "1.0.0",
+  "description": "E2E tests for ContentHub",
+  "scripts": {
+    "setup": "./tests/e2e/setup.sh"
+  }
+}
