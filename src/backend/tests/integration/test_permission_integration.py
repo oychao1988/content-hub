@@ -59,8 +59,9 @@ class TestPermissionEndpoints:
         # 测试创建内容（需要 CONTENT_CREATE 权限）
         content_data = {
             "account_id": 1,  # 假设已存在的账号ID
-            "topic": "编辑创建的测试文章",
-            "category": "技术文章"
+            "title": "编辑创建的测试文章",
+            "content_type": "article",
+            "content": "# 测试内容"
         }
 
         # 首先需要创建测试平台和账号，因为直接使用 account_id: 1 可能不存在
@@ -97,7 +98,7 @@ class TestPermissionEndpoints:
                 content_data["account_id"] = account_response.json()["id"]
 
                 create_content_response = client.post(
-                    "/api/v1/content/create",
+                    "/api/v1/content/",
                     json=content_data,
                     headers=editor_auth_headers
                 )
@@ -113,12 +114,13 @@ class TestPermissionEndpoints:
         # 测试创建内容（应该禁止）
         content_data = {
             "account_id": 1,
-            "topic": "查看用户尝试创建的文章",
-            "category": "技术文章"
+            "title": "查看用户尝试创建的文章",
+            "content_type": "article",
+            "content": "# 测试内容"
         }
 
         create_response = client.post(
-            "/api/v1/content/create",
+            "/api/v1/content/",
             json=content_data,
             headers=viewer_auth_headers
         )
@@ -247,7 +249,7 @@ class TestPermissionCombinations:
         if account_response.status_code in [201, 200]:
             account_id = account_response.json()["id"]
             content_response = client.post(
-                "/api/v1/content/create",
+                "/api/v1/content/",
                 json={
                     "account_id": account_id,
                     "topic": "管理员创建的内容",
@@ -318,7 +320,7 @@ class TestPermissionCombinations:
 
         # 查看用户不应该能够创建内容
         create_response = client.post(
-            "/api/v1/content/create",
+            "/api/v1/content/",
             json={
                 "account_id": 1,
                 "topic": "查看用户尝试创建内容",
