@@ -165,7 +165,7 @@ class TestSchedulerEndpoints:
         task_id = create_response.json()["id"]
 
         # 手动执行任务
-        response = client.post(f"/api/v1/scheduler/tasks/{task_id}/execute", headers=admin_auth_headers)
+        response = client.post(f"/api/v1/scheduler/tasks/{task_id}/trigger", headers=admin_auth_headers)
 
         # 验证结果（可能返回200或202）
         assert response.status_code in [200, 202]
@@ -187,12 +187,13 @@ class TestSchedulerEndpoints:
         task_id = create_response.json()["id"]
 
         # 获取执行历史
-        response = client.get(f"/api/v1/scheduler/tasks/{task_id}/history", headers=admin_auth_headers)
+        response = client.get(f"/api/v1/scheduler/executions?task_id={task_id}", headers=admin_auth_headers)
 
         # 验证结果
         assert response.status_code == 200
         data = response.json()
-        assert "items" in data
+        # executions返回的是列表，不是分页对象
+        assert isinstance(data, list)
 
     def test_task_pagination(self, client: TestClient, admin_auth_headers):
         """测试任务分页"""
@@ -218,7 +219,7 @@ class TestSchedulerEndpoints:
         data = response.json()
         assert len(data["items"]) <= 3
         assert data["page"] == 1
-        assert data["page_size"] == 3
+        assert data["pageSize"] == 3
 
     def test_unauthorized_access(self, client: TestClient):
         """测试未授权访问"""
