@@ -88,7 +88,7 @@
           ref="editorRef"
           v-model="localContent"
           class="editor-textarea"
-          placeholder="请输入内容..."
+          :placeholder="placeholder"
           @input="handleInput"
           @keydown.ctrl.enter="handleCtrlEnter"
         ></textarea>

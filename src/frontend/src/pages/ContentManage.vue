@@ -364,7 +364,9 @@ const fetchTableData = async () => {
   try {
     loading.value = true
     const params = {
-      ...searchForm,
+      title: searchForm.title,
+      status: searchForm.status,
+      content_type: searchForm.content_type,
       page: searchForm.page,
       page_size: searchForm.pageSize
     }
@@ -386,6 +388,9 @@ const handleSearch = () => {
 
 // 重置
 const handleReset = () => {
+  searchForm.title = ''
+  searchForm.status = ''
+  searchForm.content_type = ''
   searchForm.page = 1
   fetchTableData()
 }
@@ -541,7 +546,8 @@ const handleSubmit = async () => {
       await contentApi.createContent(data)
       ElMessage.success('创建成功')
     } else if (dialogMode.value === 'edit') {
-      await contentApi.updateContent(formData.id, data)
+      const { id, ...updateData } = data
+      await contentApi.updateContent(formData.id, updateData)
       ElMessage.success('更新成功')
     }
 

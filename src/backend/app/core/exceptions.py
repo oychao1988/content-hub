@@ -294,13 +294,14 @@ class PublisherException(BaseAppException):
         self,
         message: str,
         details: Optional[Dict[str, Any]] = None,
-        code: str = ErrorCode.PUBLISHER_API_ERROR
+        code: str = ErrorCode.PUBLISHER_API_ERROR,
+        status_code: int = status.HTTP_502_BAD_GATEWAY
     ):
         super().__init__(
             message=message,
             code=code,
             details=details,
-            status_code=status.HTTP_502_BAD_GATEWAY
+            status_code=status_code
         )
 
 
@@ -319,7 +320,8 @@ class PublisherUnauthorizedException(PublisherException):
     """Content-Publisher 认证失败"""
 
     def __init__(self):
-        super().__init__(
+        PublisherException.__init__(
+            self,
             message="Content-Publisher API 认证失败，请检查 API Key",
             code=ErrorCode.PUBLISHER_UNAUTHORIZED,
             status_code=status.HTTP_401_UNAUTHORIZED

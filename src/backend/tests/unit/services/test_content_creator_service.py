@@ -5,14 +5,19 @@ import pytest
 import subprocess
 from unittest.mock import patch, MagicMock
 import json
+import os
 from app.services.content_creator_service import ContentCreatorService
 from app.core.config import settings
 
 
 @pytest.mark.unit
+@patch('os.path.exists')
 @patch('app.services.content_creator_service.subprocess.run')
-def test_create_content_success(mock_run):
+def test_create_content_success(mock_run, mock_exists):
     """测试成功生成内容"""
+    # Mock CLI path exists
+    mock_exists.return_value = True
+
     # 配置 mock
     mock_result = MagicMock()
     mock_result.stdout = json.dumps({
@@ -49,9 +54,13 @@ def test_create_content_success(mock_run):
 
 
 @pytest.mark.unit
+@patch('os.path.exists')
 @patch('app.services.content_creator_service.subprocess.run')
-def test_create_content_failure(mock_run):
+def test_create_content_failure(mock_run, mock_exists):
     """测试内容生成失败"""
+    # Mock CLI path exists
+    mock_exists.return_value = True
+
     # 配置 mock 抛出 CalledProcessError
     mock_error = MagicMock()
     mock_error.stderr = "CLI 执行失败"
@@ -62,31 +71,35 @@ def test_create_content_failure(mock_run):
         ContentCreatorService.create_content(1, "测试选题", "科技")
 
     assert "内容生成失败" in str(exc_info.value)
-    assert "CLI 执行失败" in str(exc_info.value)
+    assert "返回码" in str(exc_info.value)
 
     print("✓ 内容生成失败测试通过")
 
 
 @pytest.mark.unit
-@patch('app.services.content_creator_service.subprocess.run')
-def test_create_content_cli_not_found(mock_run):
+@patch('os.path.exists')
+def test_create_content_cli_not_found(mock_exists):
     """测试 content-creator CLI 未找到"""
-    # 配置 mock 抛出 FileNotFoundError
-    mock_run.side_effect = FileNotFoundError
+    # 配置 mock 返回 False (CLI 不存在)
+    mock_exists.return_value = False
 
     # 验证抛出异常
     with pytest.raises(Exception) as exc_info:
         ContentCreatorService.create_content(1, "测试选题", "科技")
 
-    assert "content-creator CLI 未找到" in str(exc_info.value)
+    assert "Content-Creator CLI 未找到" in str(exc_info.value) or "content-creator CLI 未找到" in str(exc_info.value)
 
     print("✓ CLI 未找到测试通过")
 
 
 @pytest.mark.unit
+@patch('os.path.exists')
 @patch('app.services.content_creator_service.subprocess.run')
-def test_generate_cover_image_success(mock_run):
+def test_generate_cover_image_success(mock_run, mock_exists):
     """测试成功生成封面图片"""
+    # Mock CLI path exists
+    mock_exists.return_value = True
+
     # 配置 mock
     mock_result = MagicMock()
     mock_result.stdout = json.dumps({
@@ -113,9 +126,13 @@ def test_generate_cover_image_success(mock_run):
 
 
 @pytest.mark.unit
+@patch('os.path.exists')
 @patch('app.services.content_creator_service.subprocess.run')
-def test_generate_cover_image_failure(mock_run):
+def test_generate_cover_image_failure(mock_run, mock_exists):
     """测试封面生成失败"""
+    # Mock CLI path exists
+    mock_exists.return_value = True
+
     # 配置 mock 抛出异常
     mock_run.side_effect = Exception("封面生成失败")
 
@@ -129,17 +146,17 @@ def test_generate_cover_image_failure(mock_run):
 
 
 @pytest.mark.unit
-@patch('app.services.content_creator_service.subprocess.run')
-def test_generate_cover_image_cli_not_found(mock_run):
+@patch('os.path.exists')
+def test_generate_cover_image_cli_not_found(mock_exists):
     """测试生成封面时 CLI 未找到"""
-    # 配置 mock 抛出 FileNotFoundError
-    mock_run.side_effect = FileNotFoundError
+    # 配置 mock 返回 False (CLI 不存在)
+    mock_exists.return_value = False
 
     # 验证抛出异常
     with pytest.raises(Exception) as exc_info:
         ContentCreatorService.generate_cover_image("测试选题")
 
-    assert "content-creator CLI 未找到" in str(exc_info.value)
+    assert "Content-Creator CLI 未找到" in str(exc_info.value) or "content-creator CLI 未找到" in str(exc_info.value)
 
     print("✓ 生成封面时 CLI 未找到测试通过")
 

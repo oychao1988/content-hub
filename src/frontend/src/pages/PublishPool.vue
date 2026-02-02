@@ -183,7 +183,9 @@ const fetchTableData = async () => {
   try {
     loading.value = true
     const params = {
-      ...searchForm,
+      title: searchForm.title,
+      status: searchForm.status,
+      platform: searchForm.platform,
       page: searchForm.page,
       page_size: searchForm.pageSize
     }
@@ -218,6 +220,9 @@ const handleSearch = () => {
 }
 
 const handleReset = () => {
+  searchForm.title = ''
+  searchForm.status = ''
+  searchForm.platform = ''
   searchForm.page = 1
   fetchTableData()
 }
@@ -346,7 +351,8 @@ const handleSubmit = async () => {
       await publishPoolApi.addToPublishPool(formData)
       ElMessage.success('添加成功')
     } else if (dialogMode.value === 'edit') {
-      await publishPoolApi.updatePublishPoolItem(formData.id, formData)
+      const { id, ...data } = formData
+      await publishPoolApi.updatePublishPoolItem(formData.id, data)
       ElMessage.success('更新成功')
     }
 

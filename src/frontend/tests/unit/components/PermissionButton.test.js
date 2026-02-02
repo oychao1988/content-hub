@@ -1,13 +1,15 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import PermissionButton from '@/components/PermissionButton.vue'
-import { useUserStore } from '@/stores/modules/user'
 
-// Mock user store
+// Mock user store - must be defined inline for vi.mock hoisting
 vi.mock('@/stores/modules/user', () => ({
   useUserStore: vi.fn()
 }))
+
+// Import the mocked function
+import { useUserStore } from '@/stores/modules/user'
 
 describe('PermissionButton.vue', () => {
   let wrapper
@@ -24,7 +26,6 @@ describe('PermissionButton.vue', () => {
     }
 
     // 设置 mock 返回值
-    const { useUserStore } = require('@/stores/modules/user')
     useUserStore.mockReturnValue(mockUserStore)
   })
 
@@ -32,6 +33,7 @@ describe('PermissionButton.vue', () => {
     if (wrapper) {
       wrapper.unmount()
     }
+    vi.clearAllMocks()
   })
 
   it('应该渲染按钮当用户有权限', () => {
@@ -174,11 +176,13 @@ describe('PermissionButton.vue', () => {
       },
       global: {
         stubs: {
-          'el-button': true
+          'el-button': {
+            template: '<button><slot /></button>'
+          }
         }
       }
     })
 
-    expect(wrapper.find('el-button-stub').text()).toBe('创建账号')
+    expect(wrapper.find('button').text()).toBe('创建账号')
   })
 })

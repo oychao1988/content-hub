@@ -214,7 +214,9 @@ const fetchTableData = async () => {
   try {
     loading.value = true
     const params = {
-      ...searchForm,
+      name: searchForm.name,
+      job_type: searchForm.job_type,
+      status: searchForm.status,
       page: searchForm.page,
       page_size: searchForm.pageSize
     }
@@ -234,6 +236,9 @@ const handleSearch = () => {
 }
 
 const handleReset = () => {
+  searchForm.name = ''
+  searchForm.job_type = ''
+  searchForm.status = ''
   searchForm.page = 1
   fetchTableData()
 }
@@ -336,7 +341,8 @@ const handleSubmit = async () => {
       await schedulerApi.createSchedulerTask(formData)
       ElMessage.success('创建成功')
     } else if (dialogMode.value === 'edit') {
-      await schedulerApi.updateSchedulerTask(formData.id, formData)
+      const { id, ...data } = formData
+      await schedulerApi.updateSchedulerTask(id, data)
       ElMessage.success('更新成功')
     }
 

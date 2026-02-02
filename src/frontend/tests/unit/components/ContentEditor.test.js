@@ -134,10 +134,10 @@ describe('ContentEditor.vue', () => {
   })
 
   it('应该使用自定义 placeholder', async () => {
-    await wrapper.setProps({ placeholder: '请输入文章内容...' })
+    await wrapper.setProps({ placeholder: '请输入自定义内容...' })
 
     const textarea = wrapper.find('.editor-textarea')
-    expect(textarea.attributes('placeholder')).toBe('请输入文章内容...')
+    expect(textarea.attributes('placeholder')).toBe('请输入自定义内容...')
   })
 
   it('应该监听 modelValue 变化', async () => {

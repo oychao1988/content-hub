@@ -12,7 +12,7 @@ alembic==1.13.1
 apscheduler==3.10.4
 
 # HTTP 客户端
-requests==2.31.0
+requests>=2.32.2
 httpx==0.26.0
 
 # 环境变量

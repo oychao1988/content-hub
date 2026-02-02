@@ -139,8 +139,10 @@ def test_get_account_list(db_session: Session, test_customer: Customer):
     # 检查是否包含我们创建的账号
     created_names = [f"测试账号{i}" for i in range(3)]
     for account in account_list:
-        if account.name in created_names:
-            created_names.remove(account.name)
+        # account_list 返回的是字典，不是 Account 对象
+        account_name = account.get("name") if isinstance(account, dict) else account.name
+        if account_name in created_names:
+            created_names.remove(account_name)
     
     assert len(created_names) == 0
     

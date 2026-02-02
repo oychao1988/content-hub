@@ -420,13 +420,13 @@ describe('SchedulerManage.vue', () => {
 
     it('应该正确创建任务', async () => {
       wrapper.vm.dialogMode = 'create'
-      wrapper.vm.formData = {
+      Object.assign(wrapper.vm.formData, {
         name: 'New Task',
         job_type: 'content_generation',
         cron_expression: '0 0 * * *',
         job_params: '{}',
         description: 'New task description'
-      }
+      })
 
       // Mock form validation
       wrapper.vm.formRef = {
@@ -448,14 +448,14 @@ describe('SchedulerManage.vue', () => {
 
     it('应该正确更新任务', async () => {
       wrapper.vm.dialogMode = 'edit'
-      wrapper.vm.formData = {
+      Object.assign(wrapper.vm.formData, {
         id: 1,
         name: 'Updated Task',
         job_type: 'scheduled_publish',
         cron_expression: '0 9 * * 1-5',
         job_params: '{}',
         description: 'Updated description'
-      }
+      })
 
       // Mock form validation
       wrapper.vm.formRef = {

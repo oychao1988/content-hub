@@ -517,13 +517,13 @@ describe('PublishPool.vue', () => {
 
     it('应该正确创建发布池项', async () => {
       wrapper.vm.dialogMode = 'create'
-      wrapper.vm.formData = {
+      Object.assign(wrapper.vm.formData, {
         content_id: 1,
         platform_id: 1,
         account_id: 1,
         publish_time: '2024-01-02 09:00:00',
         priority: 2
-      }
+      })
 
       // Mock form validation
       wrapper.vm.formRef = {
@@ -545,14 +545,14 @@ describe('PublishPool.vue', () => {
 
     it('应该正确更新发布池项', async () => {
       wrapper.vm.dialogMode = 'edit'
-      wrapper.vm.formData = {
+      Object.assign(wrapper.vm.formData, {
         id: 1,
         content_id: 2,
         platform_id: 2,
         account_id: 2,
         publish_time: '2024-01-03 10:00:00',
         priority: 3
-      }
+      })
 
       // Mock form validation
       wrapper.vm.formRef = {

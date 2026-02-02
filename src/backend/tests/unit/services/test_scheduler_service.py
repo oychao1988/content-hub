@@ -127,7 +127,8 @@ def test_get_task_list(db_session: Session):
     db_session.commit()
 
     # 获取任务列表
-    task_list = scheduler_manager_service.get_task_list(db_session)
+    task_list_response = scheduler_manager_service.get_task_list(db_session)
+    task_list = task_list_response["items"]
 
     # 验证任务列表
     assert len(task_list) >= 3
@@ -135,8 +136,10 @@ def test_get_task_list(db_session: Session):
     # 检查是否包含我们创建的任务
     created_names = [f"测试任务{i}" for i in range(3)]
     for task in task_list:
-        if task.name in created_names:
-            created_names.remove(task.name)
+        # task 是字典，不是对象
+        task_name = task.get("name")
+        if task_name in created_names:
+            created_names.remove(task_name)
 
     assert len(created_names) == 0
 
@@ -224,7 +227,8 @@ def test_scheduler_service_operations(db_session: Session):
     assert task is not None
 
     # 查询任务列表
-    task_list = scheduler_manager_service.get_task_list(db_session)
+    task_list_response = scheduler_manager_service.get_task_list(db_session)
+    task_list = task_list_response["items"]
     assert len(task_list) >= 1
 
     # 更新任务
@@ -546,8 +550,9 @@ def test_task_with_cron_expressions(db_session: Session):
     db_session.commit()
 
     # 验证所有任务都已创建
-    task_list = scheduler_manager_service.get_task_list(db_session)
-    cron_tasks = [t for t in task_list if t.name.startswith("Cron测试任务")]
+    task_list_response = scheduler_manager_service.get_task_list(db_session)
+    task_list = task_list_response["items"]
+    cron_tasks = [t for t in task_list if t.get("name", "").startswith("Cron测试任务")]
     assert len(cron_tasks) == len(cron_expressions)
 
     print(f"✓ Cron表达式测试通过 (测试了 {len(cron_expressions)} 个表达式)")
@@ -577,13 +582,14 @@ def test_task_with_different_intervals(db_session: Session):
     db_session.commit()
 
     # 验证所有任务都已创建
-    task_list = scheduler_manager_service.get_task_list(db_session)
-    interval_tasks = [t for t in task_list if t.name.startswith("间隔测试任务")]
+    task_list_response = scheduler_manager_service.get_task_list(db_session)
+    task_list = task_list_response["items"]
+    interval_tasks = [t for t in task_list if t.get("name", "").startswith("间隔测试任务")]
     assert len(interval_tasks) == len(intervals)
 
     # 验证每个任务的配置
     for task in interval_tasks:
-        assert task.interval is not None
-        assert task.interval_unit in ["minutes", "hours", "days"]
+        assert task.get("interval") is not None
+        assert task.get("interval_unit") in ["minutes", "hours", "days"]
 
     print(f"✓ 间隔配置测试通过 (测试了 {len(intervals)} 种配置)")

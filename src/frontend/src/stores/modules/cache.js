@@ -219,6 +219,7 @@ export const useCacheStore = defineStore('cache', () => {
     cleanup,
     getStats,
     resetStats,
-    cachedGet
+    cachedGet,
+    generateKey
   }
 })

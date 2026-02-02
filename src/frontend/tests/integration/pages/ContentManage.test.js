@@ -475,7 +475,7 @@ describe('ContentManage.vue', () => {
 
     it('应该正确创建内容', async () => {
       wrapper.vm.dialogMode = 'create'
-      wrapper.vm.formData = {
+      Object.assign(wrapper.vm.formData, {
         title: 'New Content',
         content_type: 'article',
         content: 'New content',
@@ -483,7 +483,7 @@ describe('ContentManage.vue', () => {
         status: 'draft',
         tags: 'test',
         cover_image: ''
-      }
+      })
 
       // Mock form validation
       wrapper.vm.formRef = {
@@ -507,7 +507,7 @@ describe('ContentManage.vue', () => {
 
     it('应该正确更新内容', async () => {
       wrapper.vm.dialogMode = 'edit'
-      wrapper.vm.formData = {
+      Object.assign(wrapper.vm.formData, {
         id: 1,
         title: 'Updated Content',
         content_type: 'article',
@@ -516,7 +516,7 @@ describe('ContentManage.vue', () => {
         status: 'published',
         tags: 'test',
         cover_image: ''
-      }
+      })
 
       // Mock form validation
       wrapper.vm.formRef = {

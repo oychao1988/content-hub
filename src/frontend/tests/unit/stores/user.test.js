@@ -1,17 +1,24 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useUserStore } from '@/stores/modules/user'
 
-// Mock auth API
+// Mock auth API - must be defined inline for vi.mock hoisting
 vi.mock('@/api/modules/auth', () => ({
   login: vi.fn(),
   logout: vi.fn(),
   getCurrentUser: vi.fn()
 }))
 
+// Import the mocked functions
+import { login as mockLogin, logout as mockLogout, getCurrentUser as mockGetCurrentUser } from '@/api/modules/auth'
+
 describe('User Store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
     vi.clearAllMocks()
   })
 
@@ -66,14 +73,15 @@ describe('User Store', () => {
 
   describe('login 方法', () => {
     it('应该成功登录并设置 token', async () => {
-      const { login, getCurrentUser } = require('@/api/modules/auth')
-      login.mockResolvedValue({ access_token: 'test-token' })
-      getCurrentUser.mockResolvedValue({
-        id: 1,
-        username: 'testuser',
-        email: 'test@example.com',
-        role: 'admin',
-        permissions: ['account:create', 'account:update']
+      mockLogin.mockResolvedValue({ data: { access_token: 'test-token' } })
+      mockGetCurrentUser.mockResolvedValue({
+        data: {
+          id: 1,
+          username: 'testuser',
+          email: 'test@example.com',
+          role: 'admin',
+          permissions: ['account:create', 'account:update']
+        }
       })
 
       const store = useUserStore()
@@ -84,14 +92,13 @@ describe('User Store', () => {
       expect(store.token).toBe('test-token')
       expect(store.user).toBeDefined()
       expect(store.user.username).toBe('testuser')
-      expect(response.access_token).toBe('test-token')
-      expect(login).toHaveBeenCalledWith(credentials)
-      expect(getCurrentUser).toHaveBeenCalled()
+      expect(response.data.access_token).toBe('test-token')
+      expect(mockLogin).toHaveBeenCalledWith(credentials)
+      expect(mockGetCurrentUser).toHaveBeenCalled()
     })
 
     it('应该处理登录失败', async () => {
-      const { login } = require('@/api/modules/auth')
-      login.mockRejectedValue(new Error('Login failed'))
+      mockLogin.mockRejectedValue(new Error('Login failed'))
 
       const store = useUserStore()
 
@@ -105,8 +112,7 @@ describe('User Store', () => {
 
   describe('logout 方法', () => {
     it('应该成功登出并清除状态', async () => {
-      const { logout } = require('@/api/modules/auth')
-      logout.mockResolvedValue({})
+      mockLogout.mockResolvedValue({})
 
       const store = useUserStore()
       store.token = 'test-token'
@@ -118,12 +124,11 @@ describe('User Store', () => {
       expect(store.token).toBe('')
       expect(store.user).toBeNull()
       expect(store.permissions).toEqual([])
-      expect(logout).toHaveBeenCalled()
+      expect(mockLogout).toHaveBeenCalled()
     })
 
     it('应该处理登出 API 错误但仍清除状态', async () => {
-      const { logout } = require('@/api/modules/auth')
-      logout.mockRejectedValue(new Error('Logout failed'))
+      mockLogout.mockRejectedValue(new Error('Logout failed'))
 
       const store = useUserStore()
       store.token = 'test-token'
@@ -141,7 +146,6 @@ describe('User Store', () => {
 
   describe('getUserInfo 方法', () => {
     it('应该获取用户信息', async () => {
-      const { getCurrentUser } = require('@/api/modules/auth')
       const mockUser = {
         id: 1,
         username: 'testuser',
@@ -149,20 +153,19 @@ describe('User Store', () => {
         role: 'operator',
         permissions: ['content:create', 'content:update']
       }
-      getCurrentUser.mockResolvedValue(mockUser)
+      mockGetCurrentUser.mockResolvedValue({ data: mockUser })
 
       const store = useUserStore()
       const response = await store.getUserInfo()
 
       expect(store.user).toEqual(mockUser)
       expect(store.permissions).toEqual(['content:create', 'content:update'])
-      expect(response).toEqual(mockUser)
-      expect(getCurrentUser).toHaveBeenCalled()
+      expect(response.data).toEqual(mockUser)
+      expect(mockGetCurrentUser).toHaveBeenCalled()
     })
 
     it('应该处理获取用户信息失败', async () => {
-      const { getCurrentUser } = require('@/api/modules/auth')
-      getCurrentUser.mockRejectedValue(new Error('Failed to get user info'))
+      mockGetCurrentUser.mockRejectedValue(new Error('Failed to get user info'))
 
       const store = useUserStore()
 
