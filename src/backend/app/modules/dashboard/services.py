@@ -10,6 +10,7 @@ from app.db.database import get_db
 from app.models.content import Content
 from app.models.publisher import PublishLog
 from app.models.account import Account
+from app.models.scheduler import ScheduledTask
 
 
 class DashboardService:
@@ -48,13 +49,19 @@ class DashboardService:
             PublishLog.status == "success"
         ).count()
 
+        # 定时任务数
+        scheduled_task_count = db.query(ScheduledTask).filter(
+            ScheduledTask.is_active == True
+        ).count()
+
         return {
             "account_count": account_count,
             "content_count": content_count,
             "pending_review_count": pending_review_count,
             "published_count": published_count,
             "today_published_count": today_published_count,
-            "week_published_count": week_published_count
+            "week_published_count": week_published_count,
+            "scheduled_task_count": scheduled_task_count
         }
 
     @staticmethod

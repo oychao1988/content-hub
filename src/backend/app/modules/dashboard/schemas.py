@@ -13,6 +13,7 @@ class DashboardStats(BaseModel):
     published_count: int = Field(..., description="发布成功数")
     today_published_count: int = Field(..., description="今日发布数")
     week_published_count: int = Field(..., description="本周发布数")
+    scheduled_task_count: int = Field(..., description="定时任务数")
 
     class Config:
         schema_extra = {
@@ -22,7 +23,8 @@ class DashboardStats(BaseModel):
                 "pending_review_count": 10,
                 "published_count": 80,
                 "today_published_count": 5,
-                "week_published_count": 35
+                "week_published_count": 35,
+                "scheduled_task_count": 3
             }
         }
 

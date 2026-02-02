@@ -164,10 +164,10 @@ const activitiesLoading = ref(false)
 const fetchStats = async () => {
   try {
     const response = await dashboardApi.getDashboardStats()
-    stats.value[0].value = response.total_accounts || 0
-    stats.value[1].value = response.total_content || 0
-    stats.value[2].value = response.total_published || 0
-    stats.value[3].value = response.total_scheduled || 0
+    stats.value[0].value = response.account_count || 0
+    stats.value[1].value = response.content_count || 0
+    stats.value[2].value = response.published_count || 0
+    stats.value[3].value = response.scheduled_task_count || 0
   } catch (error) {
     console.error('获取统计数据失败:', error)
   }

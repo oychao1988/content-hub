@@ -20,7 +20,7 @@ export const menuConfig = [
   {
     title: '仪表盘',
     icon: 'DataBoard',
-    path: '/dashboard'
+    path: '/'
     // 注意: 仪表盘对所有已登录用户可见，无需权限控制
   },
 
