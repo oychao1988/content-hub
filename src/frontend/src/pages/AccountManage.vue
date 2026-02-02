@@ -146,10 +146,27 @@
         ref="formRef"
         :model="formData"
         :rules="formRules"
-        label-width="100px"
+        label-width="120px"
       >
-        <el-form-item label="账号名称" prop="name">
-          <el-input v-model="formData.name" placeholder="请输入账号名称" />
+        <el-form-item label="所属客户" prop="customer_id">
+          <el-select
+            v-model="formData.customer_id"
+            placeholder="请选择客户"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="customer in customers"
+              :key="customer.id"
+              :label="customer.name"
+              :value="customer.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="显示名称" prop="display_name">
+          <el-input v-model="formData.display_name" placeholder="请输入显示名称" />
+        </el-form-item>
+        <el-form-item label="目录名称" prop="directory_name">
+          <el-input v-model="formData.directory_name" placeholder="请输入目录名称（唯一标识）" />
         </el-form-item>
         <el-form-item label="所属平台" prop="platform_id">
           <el-select
@@ -165,30 +182,22 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="账号ID" prop="account_id">
-          <el-input v-model="formData.account_id" placeholder="请输入账号ID" />
-        </el-form-item>
-        <el-form-item label="认证信息" prop="credentials">
+        <el-form-item label="账号描述" prop="description">
           <el-input
-            v-model="formData.credentials"
+            v-model="formData.description"
             type="textarea"
-            :rows="4"
-            placeholder="请输入认证信息（JSON格式）"
+            :rows="3"
+            placeholder="请输入账号描述"
           />
+        </el-form-item>
+        <el-form-item label="垂直领域" prop="niche">
+          <el-input v-model="formData.niche" placeholder="请输入垂直领域（可选）" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="formData.status">
             <el-radio label="active">启用</el-radio>
             <el-radio label="inactive">禁用</el-radio>
           </el-radio-group>
-        </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input
-            v-model="formData.remark"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入备注"
-          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -231,6 +240,9 @@ const selectedRows = ref([])
 // 平台列表
 const platforms = ref([])
 
+// 客户列表
+const customers = ref([])
+
 // 对话框
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
@@ -239,23 +251,29 @@ const formRef = ref()
 const submitLoading = ref(false)
 
 const formData = reactive({
-  name: '',
+  customer_id: null,
+  display_name: '',
+  directory_name: '',
   platform_id: null,
-  account_id: '',
-  credentials: '',
-  status: 'active',
-  remark: ''
+  description: '',
+  niche: '',
+  status: 'active'
 })
 
 const formRules = {
-  name: commonRules.accountName(),
-  platform_id: commonRules.accountPlatformId(),
-  account_id: [
-    { required: true, message: '请输入账号ID', trigger: 'blur' },
-    { minLength: 1, message: '账号ID不能为空', trigger: 'blur' }
+  customer_id: [
+    { required: true, message: '请选择客户', trigger: 'change' }
   ],
-  credentials: [
-    { required: true, message: '请输入认证信息', trigger: 'blur' }
+  display_name: [
+    { required: true, message: '请输入显示名称', trigger: 'blur' },
+    { minLength: 1, message: '显示名称不能为空', trigger: 'blur' }
+  ],
+  directory_name: [
+    { required: true, message: '请输入目录名称', trigger: 'blur' },
+    { minLength: 1, message: '目录名称不能为空', trigger: 'blur' }
+  ],
+  platform_id: [
+    { required: true, message: '请选择平台', trigger: 'change' }
   ]
 }
 
@@ -285,6 +303,22 @@ const fetchPlatforms = async () => {
     platforms.value = response.items || []
   } catch (error) {
     console.error('获取平台列表失败:', error)
+  }
+}
+
+// 获取客户列表
+const fetchCustomers = async () => {
+  try {
+    const response = await fetch('http://localhost:8010/api/v1/customers/', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    const data = await response.json()
+    customers.value = data.items || []
+  } catch (error) {
+    console.error('获取客户列表失败:', error)
   }
 }
 
@@ -322,6 +356,9 @@ const handleSelectionChange = (selection) => {
 const handleCreate = () => {
   dialogMode.value = 'create'
   dialogTitle.value = '新建账号'
+  // 设置默认值
+  formData.customer_id = 1  // 默认客户ID
+  formData.status = 'active'
   dialogVisible.value = true
 }
 
@@ -433,13 +470,14 @@ const handleSubmit = async () => {
 const handleDialogClose = () => {
   formRef.value?.resetFields()
   Object.keys(formData).forEach(key => {
-    formData[key] = key === 'status' ? 'active' : ''
+    formData[key] = key === 'status' ? 'active' : null
   })
 }
 
 onMounted(() => {
   fetchTableData()
   fetchPlatforms()
+  fetchCustomers()
 })
 </script>
 

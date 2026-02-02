@@ -8,6 +8,8 @@ from datetime import datetime
 
 class AccountCreate(BaseModel):
     """创建账号请求模型"""
+    customer_id: int = Field(..., description="客户 ID")
+    platform_id: int = Field(..., description="平台 ID")
     directory_name: str = Field(..., min_length=1, max_length=100, description="目录名称（唯一）")
     display_name: str = Field(..., min_length=1, max_length=200, description="显示名称")
     description: Optional[str] = Field(None, max_length=500, description="账号描述")
@@ -16,6 +18,8 @@ class AccountCreate(BaseModel):
     class Config:
         schema_extra = {
             "example": {
+                "customer_id": 1,
+                "platform_id": 1,
                 "directory_name": "tech_blog",
                 "display_name": "技术博客",
                 "description": "分享技术文章和教程",

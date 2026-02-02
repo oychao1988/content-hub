@@ -44,6 +44,18 @@ class AccountService:
     @staticmethod
     def create_account(db: Session, account_data: dict) -> Account:
         """创建账号"""
+        # 字段映射：display_name -> name
+        if 'display_name' in account_data:
+            account_data['name'] = account_data.pop('display_name')
+
+        # 字段映射：status -> is_active
+        if 'status' in account_data:
+            is_active = account_data.pop('status') == 'active'
+            account_data['is_active'] = is_active
+
+        # 移除 Account 模型中不存在的字段
+        account_data.pop('niche', None)
+
         account = Account(**account_data)
         db.add(account)
         db.commit()
