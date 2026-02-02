@@ -13,17 +13,39 @@
         router
         class="sidebar-menu"
       >
-        <template v-for="route in menuRoutes" :key="route.path">
+        <template v-for="menu in filteredMenus" :key="menu.path || menu.title">
+          <!-- 顶级菜单项（如仪表盘） -->
           <el-menu-item
-            v-if="!route.meta?.role || userStore.isAdmin"
-            :index="route.path"
-            :route="route.path"
+            v-if="!menu.isSubmenu"
+            :index="menu.path"
+            :route="menu.path"
           >
             <el-icon>
-              <component :is="route.meta?.icon" />
+              <component :is="menu.icon" />
             </el-icon>
-            <template #title>{{ route.meta?.title }}</template>
+            <template #title>{{ menu.title }}</template>
           </el-menu-item>
+
+          <!-- 分组菜单 -->
+          <el-sub-menu v-else :index="menu.title">
+            <template #title>
+              <el-icon>
+                <component :is="menu.icon" />
+              </el-icon>
+              <span>{{ menu.title }}</span>
+            </template>
+            <el-menu-item
+              v-for="item in menu.items"
+              :key="item.path"
+              :index="item.path"
+              :route="item.path"
+            >
+              <el-icon>
+                <component :is="item.icon" />
+              </el-icon>
+              <template #title>{{ item.title }}</template>
+            </el-menu-item>
+          </el-sub-menu>
         </template>
       </el-menu>
     </el-aside>
@@ -107,8 +129,18 @@ import {
   User,
   Setting,
   SwitchButton,
-  ArrowDown
+  ArrowDown,
+  DataBoard,
+  Document,
+  Promotion,
+  Box,
+  Timer,
+  OfficeBuilding,
+  Monitor,
+  EditPen,
+  CollectionTag
 } from '@element-plus/icons-vue'
+import menuConfig from '../router/menu.config.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -125,24 +157,59 @@ const activeMenu = computed(() => {
   return route.path
 })
 
-// 菜单路由（从路由配置中提取，并根据权限过滤）
-const menuRoutes = computed(() => {
-  return router.getRoutes().filter(route => {
-    // 必须有标题且不是根路径
-    if (!route.meta?.title || route.path === '/') {
+/**
+ * 检查单个菜单项是否有权限访问
+ * @param {Object} menu - 菜单项配置
+ * @returns {Boolean} - 是否有权限
+ */
+const checkMenuPermission = (menu) => {
+  // 检查 role 属性
+  if (menu.role && menu.role !== userStore.user?.role) {
+    return false
+  }
+
+  // 检查 permissions 属性（满足任意一个即可）
+  if (menu.permissions && menu.permissions.length > 0) {
+    return userStore.hasAnyPermission(menu.permissions)
+  }
+
+  // 检查 visibleRoles 属性（当前角色是否在可见角色列表中）
+  if (menu.visibleRoles && menu.visibleRoles.length > 0) {
+    return menu.visibleRoles.includes(userStore.user?.role)
+  }
+
+  // 没有权限限制，默认可见
+  return true
+}
+
+/**
+ * 过滤后的菜单配置
+ * - 对顶级菜单项进行权限检查
+ * - 对分组菜单进行权限检查，并过滤其子菜单项
+ * - 如果分组菜单的所有子菜单都无权限，则不显示该分组
+ */
+const filteredMenus = computed(() => {
+  return menuConfig.filter(menu => {
+    // 顶级菜单项（如仪表盘）
+    if (!menu.isSubmenu) {
+      return checkMenuPermission(menu)
+    }
+
+    // 分组菜单：需要检查分组本身的权限
+    if (!checkMenuPermission(menu)) {
       return false
     }
 
-    // 检查角色权限
-    if (route.meta?.role && route.meta.role !== userStore.user?.role) {
+    // 过滤分组下的子菜单项
+    const filteredItems = menu.items.filter(item => checkMenuPermission(item))
+
+    // 如果分组下没有任何有权限的子菜单，则不显示该分组
+    if (filteredItems.length === 0) {
       return false
     }
 
-    // 检查功能权限
-    if (route.meta?.permissions && userStore.user) {
-      return userStore.hasAnyPermission(route.meta.permissions)
-    }
-
+    // 更新菜单的子菜单项为过滤后的结果
+    menu.items = filteredItems
     return true
   })
 })
