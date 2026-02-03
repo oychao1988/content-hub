@@ -109,12 +109,16 @@ async def create_user(
             raise HTTPException(status_code=400, detail="邮箱已存在")
 
     # 创建新用户
-    from app.core.security import get_password_hash
+    from app.core.security import get_password_hash, create_salt
+
+    # 生成盐值和哈希密码
+    salt = create_salt()
+    password_hash = get_password_hash(user_data.get("password", "123456"), salt)
 
     new_user = User(
         username=user_data.get("username"),
         email=user_data.get("email"),
-        hashed_password=get_password_hash(user_data.get("password", "123456")),
+        password_hash=password_hash,
         role=user_data.get("role", "viewer"),
         is_active=user_data.get("is_active", True)
     )

@@ -439,7 +439,13 @@ const handlePreview = (row) => {
 const handleEdit = (row) => {
   dialogMode.value = 'edit'
   dialogTitle.value = '编辑内容'
-  Object.assign(formData, row)
+  // 只复制允许编辑的字段，避免复制id、account_id等不应更新的字段
+  const editableFields = ['title', 'content_type', 'content', 'summary', 'status', 'tags', 'cover_image']
+  editableFields.forEach(field => {
+    if (row[field] !== undefined) {
+      formData[field] = row[field]
+    }
+  })
   dialogVisible.value = true
 }
 
