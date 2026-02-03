@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# contenthub - ContentHub CLI 入口脚本
+
+set -e
+
+# 获取脚本所在目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# 切换到后端目录
+cd "$PROJECT_ROOT/src/backend"
+
+# 设置 Python 路径
+export PYTHONPATH="$PROJECT_ROOT/src/backend:$PYTHONPATH"
+
+# 执行 Python CLI
+exec python -m cli.main "$@"

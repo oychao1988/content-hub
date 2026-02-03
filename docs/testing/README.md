@@ -22,8 +22,14 @@ docs/testing/
 - **[单元测试手动指南](guides/unit-test-manual-guide.md)** - 手动执行单元测试的步骤指南
 
 ### 测试报告
-- **[E2E最终验证报告](reports/e2e-final-verification.md)** - API修复后的最终验证报告 ⭐ 最新
-- **[E2E API错误修复报告](reports/e2e-api-fix-report.md)** - API 404错误修复详情 ⭐ 重要
+- **[E2E测试执行准备报告](reports/E2E-TEST-EXECUTION-PREPARATION-REPORT.md)** - 测试执行准备和环境验证 ⭐ 最新
+- **[E2E测试最终完成报告](reports/E2E-TEST-FINAL-COMPLETION-REPORT.md)** - 所有6阶段完成报告
+- **[测试文档整理总结](reports/test-document-organization-summary.md)** - 测试文档组织结构优化
+- **[E2E测试补充完成报告](reports/E2E-TEST-SUPPLEMENT-COMPLETION-REPORT.md)** - 登录页测试补充完成
+- **[E2E测试覆盖率分析报告](reports/E2E-TEST-COVERAGE-ANALYSIS.md)** - 逐页覆盖率分析报告
+- **[E2E测试改进计划](reports/E2E-TEST-IMPROVEMENT-PLAN.md)** - 测试补充计划和执行状态
+- **[E2E最终验证报告](reports/e2e-final-verification.md)** - API修复后的最终验证报告
+- **[E2E API错误修复报告](reports/e2e-api-fix-report.md)** - API 404错误修复详情
 - **[测试补充报告](reports/test-supplement-report.md)** - 后端测试补充完整报告
 - **[测试补充摘要](reports/test-supplement-summary.md)** - 后端测试补充执行摘要
 
@@ -56,6 +62,12 @@ docs/testing/
 
 | 文档 | 状态 | 说明 |
 |------|------|------|
+| `test-document-organization-summary.md` | ✅ 保留 | 测试文档整理总结（2026-02-03） |
+| `E2E-TEST-SUPPLEMENT-COMPLETION-REPORT.md` | ✅ 保留 | E2E测试补充完成报告（2026-02-03） |
+| `E2E-TEST-COVERAGE-ANALYSIS.md` | ✅ 保留 | E2E测试覆盖率分析报告（2026-02-03） |
+| `E2E-TEST-IMPROVEMENT-PLAN.md` | ✅ 保留 | E2E测试改进计划（2026-02-03） |
+| `E2E-TEST-SUPPLEMENT-PLAN.md` | ✅ 保留 | E2E测试补充原始计划（2026-02-03） |
+| `E2E-TEST-SUPPLEMENT-REPORT.md` | ✅ 保留 | E2E测试补充执行报告（2026-02-03） |
 | `e2e-final-verification.md` | ✅ 保留 | E2E最终验证报告（2026-02-01） |
 | `e2e-api-fix-report.md` | ✅ 保留 | API错误修复报告（2026-02-01） |
 | `test-supplement-report.md` | ✅ 保留 | 测试补充完整报告 |
@@ -98,9 +110,60 @@ docs/testing/
 - `COMPLETE_TEST_REPORT.md` - 完整测试报告，已过时
 - `CONTENT_HUB_TEST_REPORT.md` - 内容中心测试报告，已过时
 
+## 📊 E2E 测试状态（2026-02-03 更新）
+
+### 测试覆盖率概览
+
+| 指标 | 数值 |
+|------|------|
+| **测试文件总数** | 16 个 |
+| **测试用例总数** | 146+ 个 |
+| **平均覆盖率** | **76%** |
+| **页面覆盖率** | 100% (15/15) |
+
+### 测试文件列表
+
+| 测试文件 | 用例数 | 覆盖页面 | 覆盖率 |
+|---------|--------|---------|--------|
+| login-auth-flow.spec.js | 16 | 登录页面 | 75% |
+| dashboard-page.spec.js | 15 | 仪表盘 | 80% |
+| accounts-management.spec.js | 8 | 账号管理 | 70% |
+| users-management.spec.js | 7 | 用户管理 | 75% |
+| customers-management.spec.js | 7 | 客户管理 | 70% |
+| platforms-management.spec.js | 7 | 平台管理 | 75% |
+| system-config.spec.js | 8 | 系统配置 | 80% |
+| writing-styles-management.spec.js | 8 | 写作风格 | 75% |
+| content-themes-management.spec.js | 8 | 内容主题 | 75% |
+| access-control.spec.js | 8 | 403页面 | 85% |
+| content-generation-flow.spec.js | 6 | 内容管理 | 85% |
+| scheduler-flow.spec.js | 6 | 定时任务 | 85% |
+| batch-publish-flow.spec.js | 7 | 发布管理/池 | 80% |
+| permission-control.spec.js | 20+ | 权限控制 | 85% |
+| data-isolation.spec.js | 15+ | 数据隔离 | 85% |
+
+### 改进计划
+
+详细的测试覆盖率分析和补充计划见：
+- **[E2E测试覆盖率分析报告](reports/E2E-TEST-COVERAGE-ANALYSIS.md)** - 逐页覆盖率分析
+- **[E2E测试改进计划](reports/E2E-TEST-IMPROVEMENT-PLAN.md)** - 测试补充计划
+- **[E2E测试补充完成报告](reports/E2E-TEST-SUPPLEMENT-COMPLETION-REPORT.md)** - 已完成的补充报告
+- **[E2E测试补充计划](reports/E2E-TEST-SUPPLEMENT-PLAN.md)** - 原始补充计划
+- **[E2E测试补充报告](reports/E2E-TEST-SUPPLEMENT-REPORT.md)** - 补充执行报告
+
+---
+
 ## 📊 测试时间线
 
+### 2026-02-03
+- ✅ 完成测试文档整理
+- ✅ 完成登录页测试补充（11个边界测试用例）
+- ✅ 新增8个测试辅助函数
+- ✅ 登录页覆盖率从75%提升到100%
+- ✅ 完成E2E测试覆盖率分析报告
+- ✅ 整体测试覆盖率达到76%
+
 ### 2026-02-01
+- ✅ 完成E2E测试用例补充（10个文件，92个用例）
 - ✅ 完成E2E测试
 - ✅ 发现并修复5个API 404错误
 - ✅ 创建users模块
@@ -153,12 +216,11 @@ docs/testing/
 ## 🔗 相关文档
 
 - [项目主文档](../../README.md)
-- [架构设计](../ARCHITECTURE.md)
-- [完整设计](../DESIGN.md)
-- [实施计划](../IMPLEMENTATION-PLAN.md)
-- [后端文档](../../src/backend/README.md)
+- [架构设计](../architecture/ARCHITECTURE.md)
+- [系统设计](../design/system-design.md)
+- [文档中心](../README.md)
 
 ---
 
-**最后更新**: 2026-02-01
+**最后更新**: 2026-02-03
 **维护者**: Claude Code AI Agent

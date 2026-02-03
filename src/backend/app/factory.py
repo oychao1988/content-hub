@@ -51,15 +51,24 @@ def create_app() -> FastAPI:
         openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
     )
 
-    # CORS 配置
-    if hasattr(settings, "CORS_ORIGINS"):
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=[str(origin) for origin in settings.CORS_ORIGINS],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+    # CORS 配置 - 总是启用CORS中间件
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:3000",
+            "http://localhost:3010",
+            "http://localhost:3011",
+            "http://localhost:5173",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:3010",
+            "http://127.0.0.1:3011",
+            "http://127.0.0.1:5173",
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    log.info("✅ CORS中间件已启用")
 
     # 添加自定义中间件（注意顺序：后添加的先执行）
     app.add_middleware(ErrorContextMiddleware)  # 最内层

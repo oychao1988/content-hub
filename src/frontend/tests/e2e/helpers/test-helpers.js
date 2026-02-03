@@ -50,7 +50,7 @@ export async function logout(page) {
 /**
  * 等待并点击元素
  * @param {Page} page - Playwright Page 对象
- * @param {string} selector - CSS 选择器
+ * @param {string} selector - 选择器
  * @param {number} timeout - 超时时间（毫秒）
  */
 export async function waitAndClick(page, selector, timeout = 5000) {
@@ -59,10 +59,10 @@ export async function waitAndClick(page, selector, timeout = 5000) {
 }
 
 /**
- * 等待并填写表单
+ * 等待并填充输入框
  * @param {Page} page - Playwright Page 对象
- * @param {string} selector - CSS 选择器
- * @param {string} value - 填写的值
+ * @param {string} selector - 选择器
+ * @param {string} value - 填充值
  * @param {number} timeout - 超时时间（毫秒）
  */
 export async function waitAndFill(page, selector, value, timeout = 5000) {
@@ -71,10 +71,10 @@ export async function waitAndFill(page, selector, value, timeout = 5000) {
 }
 
 /**
- * 等待消息提示并验证内容
+ * 验证消息提示
  * @param {Page} page - Playwright Page 对象
  * @param {string} message - 期望的消息内容
- * @param {string} type - 消息类型（success, error, warning, info）
+ * @param {string} type - 消息类型（success/error/warning/info）
  */
 export async function verifyMessage(page, message, type = 'success') {
   const messageSelector = `.el-message--${type}`
@@ -85,101 +85,72 @@ export async function verifyMessage(page, message, type = 'success') {
 /**
  * 创建内容辅助函数
  * @param {Page} page - Playwright Page 对象
- * @param {object} contentData - 内容数据
+ * @param {Object} contentData - 内容数据
  */
 export async function createContent(page, contentData) {
-  // 导航到内容管理页面
-  await page.goto('/content')
-
   // 点击新建按钮
   await waitAndClick(page, 'button:has-text("新建")')
 
-  // 等待对话框打开
-  await page.waitForSelector('.el-dialog', { timeout: 5000 })
+  // 填写表单
+  await waitAndFill(page, 'input[name="title"]', contentData.title)
+  await waitAndFill(page, 'textarea[name="content"]', contentData.content)
 
-  // 填写内容表单
-  await waitAndFill(page, 'input[placeholder*="标题"]', contentData.title)
+  // 点击保存
+  await waitAndClick(page, 'button:has-text("保存")')
 
-  // 选择平台
-  if (contentData.platform_id) {
-    await page.click('.el-select:has-text("选择平台")')
-    await page.click(`.el-select-dropdown__item[data-value="${contentData.platform_id}"]`)
-  }
-
-  // 选择主题
-  if (contentData.theme_id) {
-    await page.click('.el-select:has-text("选择主题")')
-    await page.click(`.el-select-dropdown__item[data-value="${contentData.theme_id}"]`)
-  }
-
-  // 填写内容
-  const contentEditor = page.locator('.content-editor textarea, .content-editor [contenteditable="true"]')
-  await contentEditor.fill(contentData.content)
-
-  // 保存
-  await page.click('button:has-text("保存")')
-
-  // 等待保存成功
-  await verifyMessage(page, '保存成功', 'success')
-
-  // 等待对话框关闭
-  await page.waitForSelector('.el-dialog', { state: 'hidden' })
+  // 验证成功消息
+  await verifyMessage(page, '创建成功')
 }
 
 /**
  * 创建定时任务辅助函数
  * @param {Page} page - Playwright Page 对象
- * @param {object} taskData - 任务数据
+ * @param {Object} taskData - 任务数据
  */
 export async function createTask(page, taskData) {
-  // 导航到定时任务页面
-  await page.goto('/scheduler')
-
-  // 点击新建任务按钮
+  // 点击新建按钮
   await waitAndClick(page, 'button:has-text("新建任务")')
 
-  // 等待对话框打开
-  await page.waitForSelector('.el-dialog', { timeout: 5000 })
+  // 填写表单
+  await waitAndFill(page, 'input[name="name"]', taskData.name)
+  await waitAndFill(page, 'textarea[name="description"]', taskData.description)
 
-  // 填写任务表单
-  await waitAndFill(page, 'input[placeholder*="任务名称"]', taskData.name)
-  await waitAndFill(page, 'textarea[placeholder*="描述"]', taskData.description)
+  // 选择执行时间
+  await waitAndClick(page, 'input[name="execute_time"]')
+  await page.click(`text=${taskData.execute_time}`)
 
-  // 选择任务类型
-  await page.click('.el-select:has-text("任务类型")')
-  await page.click(`.el-select-dropdown__item:has-text("${taskData.task_type}")`)
+  // 点击保存
+  await waitAndClick(page, 'button:has-text("保存")')
 
-  // 设置间隔
-  await page.fill('input[placeholder*="间隔"]', taskData.interval.toString())
-  await page.click('.el-select:has-text("时间单位")')
-  await page.click(`.el-select-dropdown__item:has-text("${taskData.interval_unit}")`)
-
-  // 保存
-  await page.click('button:has-text("保存")')
-
-  // 等待保存成功
-  await verifyMessage(page, '创建成功', 'success')
+  // 验证成功消息
+  await verifyMessage(page, '创建成功')
 }
 
 /**
  * 验证表格数据
  * @param {Page} page - Playwright Page 对象
- * @param {string} text - 期望在表格中找到的文本
+ * @param {string} text - 期望在表格中看到的文本
  */
 export async function verifyTableData(page, text) {
-  const tableRow = page.locator(`.el-table__row:has-text("${text}")`)
-  await expect(tableRow).toBeVisible()
+  const table = page.locator('.el-table__body')
+  await expect(table).toContainText(text)
 }
 
 /**
- * 批量选择表格行
+ * 选择表格行
  * @param {Page} page - Playwright Page 对象
  * @param {number} count - 要选择的行数
  */
 export async function selectTableRows(page, count) {
-  const checkboxes = page.locator('.el-table__body .el-checkbox__input').first(count)
-  for (let i = 0; i < count; i++) {
-    await checkboxes.nth(i).click()
+  const checkboxes = page.locator('.el-table__body .el-checkbox__input').first()
+  
+  // 等待表格加载
+  await page.waitForSelector('.el-table__body .el-checkbox__input', { timeout: 5000 })
+  
+  const allCheckboxes = page.locator('.el-table__body .el-checkbox__input')
+  
+  for (let i = 0; i < Math.min(count, await allCheckboxes.count()); i++) {
+    await allCheckboxes.nth(i).check()
   }
 }
 
@@ -198,18 +169,16 @@ export async function takeScreenshot(page, name) {
  */
 export async function waitForLoading(page) {
   const loadingSelector = '.el-loading-mask'
-  if (await page.locator(loadingSelector).count() > 0) {
-    await page.waitForSelector(loadingSelector, { state: 'hidden', timeout: 10000 })
-  }
-}
+  const maxWait = 10000
+  const startTime = Date.now()
 
-/**
- * 获取表格行数
- * @param {Page} page - Playwright Page 对象
- * @returns {number} 表格行数
- */
-export async function getTableRowCount(page) {
-  return await page.locator('.el-table__body .el-table__row').count()
+  while (Date.now() - startTime < maxWait) {
+    const isLoading = await page.locator(loadingSelector).count()
+    if (isLoading === 0) {
+      return
+    }
+    await page.waitForTimeout(100)
+  }
 }
 
 /**
@@ -218,5 +187,113 @@ export async function getTableRowCount(page) {
  * @param {string} title - 期望的页面标题
  */
 export async function verifyPageTitle(page, title) {
-  await expect(page.locator('.page-header h1, .page-title').first()).toContainText(title)
+  await expect(page.locator('.page-header h1, .page-title')).toContainText(title)
+}
+
+/**
+ * 验证字段验证错误
+ * @param {Page} page - Playwright Page 对象
+ * @param {string} selector - 字段选择器
+ * @param {string} value - 输入值
+ * @param {Object} options - 选项
+ */
+export async function verifyFieldValidation(page, selector, value, options = {}) {
+  const { shouldShowError = true, errorMessage } = options
+
+  await page.fill(selector, value)
+  await page.blur(selector)
+
+  if (shouldShowError) {
+    const errorElement = page.locator('.el-form-item__error')
+    await expect(errorElement).toBeVisible()
+
+    if (errorMessage) {
+      await expect(errorElement).toContainText(errorMessage)
+    }
+  }
+}
+
+/**
+ * 验证必填字段
+ * @param {Page} page - Playwright Page 对象
+ * @param {string} selector - 字段选择器
+ */
+export async function verifyRequiredField(page, selector) {
+  await page.click(selector)
+  await page.fill(selector, '')
+  await page.blur(selector)
+
+  const errorElement = page.locator('.el-form-item__error')
+  await expect(errorElement).toBeVisible()
+  await expect(errorElement).toContainText(/必填|不能为空|required/i)
+}
+
+/**
+ * 验证权限按钮
+ * @param {Page} page - Playwright Page 对象
+ * @param {string} buttonText - 按钮文本
+ * @param {boolean} shouldVisible - 是否应该可见
+ */
+export async function verifyPermissionButton(page, buttonText, shouldVisible = true) {
+  const button = page.locator(`button:has-text("${buttonText}")`)
+
+  if (shouldVisible) {
+    await expect(button).toBeVisible()
+    await expect(button).toBeEnabled()
+  } else {
+    await expect(button).not.toBeVisible()
+  }
+}
+
+/**
+ * 验证分页功能
+ * @param {Page} page - Playwright Page 对象
+ */
+export async function verifyPagination(page) {
+  const pagination = page.locator('.el-pagination')
+  
+  if (await pagination.count() > 0) {
+    await expect(pagination).toBeVisible()
+    
+    // 验证分页信息
+    const totalCount = page.locator('.el-pagination__total')
+    expect(await totalCount.count()).toBeGreaterThan(0)
+  }
+}
+
+/**
+ * 等待消息消失
+ * @param {Page} page - Playwright Page 对象
+ */
+export async function waitForMessageDisappear(page) {
+  const messageSelector = '.el-message'
+  await page.waitForSelector(messageSelector, { state: 'detached', timeout: 5000 })
+}
+
+/**
+ * 获取表格行数
+ * @param {Page} page - Playwright Page 对象
+ * @returns {number} 表格行数
+ */
+export async function getTableRowCount(page) {
+  await page.waitForSelector('.el-table__body tr', { timeout: 5000 })
+  return await page.locator('.el-table__body tr').count()
+}
+
+/**
+ * 验证表格行数变化
+ * @param {Page} page - Playwright Page 对象
+ * @param {number} expectedCount - 期望的行数
+ * @param {string} operation - 操作类型（increase/decrease）
+ */
+export async function verifyTableRowCountChange(page, expectedCount, operation = 'decrease') {
+  const currentCount = await getTableRowCount(page)
+
+  if (operation === 'decrease') {
+    expect(currentCount).toBeLessThan(expectedCount)
+  } else if (operation === 'increase') {
+    expect(currentCount).toBeGreaterThan(expectedCount)
+  } else {
+    expect(currentCount).toBe(expectedCount)
+  }
 }

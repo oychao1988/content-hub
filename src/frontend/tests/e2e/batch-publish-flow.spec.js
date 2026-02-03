@@ -8,8 +8,8 @@
  */
 
 import { test, expect } from '@playwright/test'
-import { login, logout, verifyMessage, verifyTableData, selectTableRows } from '../helpers/test-helpers'
-import { testUsers, testContent } from '../helpers/test-data'
+import { login, logout, verifyMessage, verifyTableData, selectTableRows } from './helpers/test-helpers'
+import { testUsers, testContent } from './helpers/test-data'
 
 test.describe('批量发布完整流程', () => {
   test.beforeEach(async ({ page }) => {

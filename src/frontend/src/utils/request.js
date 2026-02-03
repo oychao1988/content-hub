@@ -109,7 +109,7 @@ request.interceptors.response.use(
     }
 
     // 判断是否需要重新登录
-    if (errorHandler.shouldLogout(status, data)) {
+    if (errorHandler.shouldLogout(status, data, originalRequest.method)) {
       // 如果不是静默请求，显示错误提示
       if (!originalRequest._silent) {
         ElMessage.error('登录已过期，请重新登录')

@@ -267,10 +267,17 @@ class ErrorHandler {
    * 判断错误是否需要重新登录
    * @param {number} status - HTTP 状态码
    * @param {Object} response - 响应对象
+   * @param {string} method - HTTP 方法
    * @returns {boolean} 是否需要重新登录
    */
-  shouldLogout(status, response) {
-    // 401 未授权
+  shouldLogout(status, response, method = null) {
+    // 对于 DELETE 请求的 401 错误，不自动登出
+    // 因为可能是服务端临时错误，不应该强制用户重新登录
+    if (status === 401 && method === 'delete') {
+      return false
+    }
+
+    // 401 未授权（其他方法）
     if (status === 401) {
       return true
     }

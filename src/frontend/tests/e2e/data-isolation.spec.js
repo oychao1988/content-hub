@@ -8,8 +8,8 @@
  */
 
 import { test, expect } from '@playwright/test'
-import { login, logout, verifyMessage } from '../helpers/test-helpers'
-import { testUsers } from '../helpers/test-data'
+import { login, logout, verifyMessage } from './helpers/test-helpers'
+import { testUsers } from './helpers/test-data'
 
 test.describe('跨用户数据隔离测试', () => {
   test.describe('内容数据隔离', () => {

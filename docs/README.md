@@ -1,176 +1,211 @@
-# ContentHub 文档索引
+# ContentHub 文档中心
 
-本目录包含 ContentHub 项目的所有文档，按类型和用途组织。
+欢迎来到 ContentHub 项目文档中心。本文档采用标准化的分类管理体系，按文档用途和生命周期组织。
 
-## 📚 目录结构
-
-### 📖 核心文档（根目录）
-
-- **README.md** - 项目介绍和快速开始指南
-- **CLAUDE.md** - Claude Code 开发指南
-- **SUMMARY.md** - 项目总结
-
-### 🏗️ 架构与设计（docs/ 根目录）
-
-- **ARCHITECTURE.md** - 系统架构文档
-- **DESIGN.md** - 详细设计文档
-- **QUICKSTART.md** - 快速开始指南
-- **QUICK_REFERENCE.md** - 快速参考手册
-
-### 📋 计划文档（docs/plans/）
-
-开发计划和执行计划：
-- **CONTENTHUB-DEV-PLAN.md** - ContentHub 开发计划
-- **CONTINUATION-PLAN.md** - 继续开发计划
-- **DESIGN-GAP-FILLING-PLAN.md** - 设计差距填补计划
-- **FINAL-GAP-FILLING-PLAN.md** - 最终差距填补计划
-- **NEXT-PHASE-PLAN.md** - 下一阶段计划
-
-### 🧪 测试文档（docs/testing/）
-
-完整的测试体系文档：
-
-#### 测试报告
-- **COMPLETE-TEST-REPORT.md** - 完整测试报告（主报告）
-- **FINAL-TEST-REPORT.md** - 最终测试报告
-- **TEST-EXECUTION-SUMMARY.md** - 测试执行总结
-- **TEST-SUMMARY.md** - 测试总结
-- **TEST-FINAL-REPORT.md** - 初始测试报告
-
-#### 测试分析
-- **FRONTEND-ANALYSIS.md** - 前端交互逻辑分析（1,100+ 行）
-- **BUG-REPORT.md** - Bug 详细报告和修复方案
-
-#### 测试计划
-- **frontend-testing-PLAN.md** - 前端测试计划（17 阶段）
-- **bug-fix-and-testing-PLAN.md** - Bug 修复和测试计划（16 阶段）
-- **complete-testing-PLAN.md** - 完整测试计划（11 阶段）
-- **TEST-FIX-PLAN.md** - 测试修复计划
-
-#### 测试用例
-- **TEST-CHECKLIST.md** - 测试检查清单（120 个用例）
-- **TEST-PROGRESS.md** - 测试进度跟踪
-
-#### 测试截图
-- **../test-screenshots/** - 16 张页面测试截图
-
-### 💻 开发文档（docs/development/）
-
-开发阶段报告和总结：
-
-#### 阶段报告
-- **PHASE1_EXECUTION_REPORT.md** - 阶段 1 执行报告
-- **PHASE2_*.md** - 阶段 2 相关报告
-- **PHASE3-7_*.md** - 阶段 3-7 完成报告
-- **PROGRESS-SUMMARY.md** - 进度总结
-- **PROJECT_STATUS_2026-01-29.md** - 项目状态快照
-
-#### 技术文档
-- **FRONTEND_VALIDATION_SUMMARY.md** - 前端验证总结
-- **FINAL-GAP-FILLING-COMPLETION-REPORT.md** - 差距填补完成报告
-- **DOCKER_STRUCTURE.md** - Docker 结构说明
-
-### 🚀 部署文档（docs/deployment/）
-
-- **DEPLOYMENT.md** - 部署指南
-
-### 💾 备份文档（docs/backup/）
-
-- **BACKUP.md** - 备份说明
-- **BACKUP_AUTOMATION_REPORT.md** - 备份自动化报告
-
-### 📊 报告（docs/reports/）
-
-各类综合报告（预留目录）
-
-### 🤖 Agent 文档（docs/agents/）
-
-Claude Code Agent 配置：
-- **contenthub-executor.md** - ContentHub 执行 agent
-- **contenthub-manager.md** - ContentHub 管理 agent
-- **contenthub-quality-validator.md** - ContentHub 质量验证 agent
-
-### 🔧 错误处理（docs/ 根目录）
-
-- **error-handling-quick-reference.md** - 错误处理快速参考
-- **error-handling-summary.md** - 错误处理总结
-- **error-handling-test.md** - 错误处理测试
-
-### 📖 技能文档（docs/skills/）
-
-ContentHub 相关技能配置
-
-### 📝 其他文档（docs/ 根目录）
-
-- **IMPLEMENTATION-PLAN.md** - 实施计划
-- **STAGE2_SUMMARY.md** - 阶段 2 总结
-- **TEST-REPORT.md** - 测试报告
-- **verify_implementation.md** - 实施验证
-- **stage2-database-models-report.md** - 阶段 2 数据库模型报告
-
-## 🎯 快速导航
-
-### 我想了解...
-
-- **项目概述**: 阅读 [README.md](../README.md)
-- **系统架构**: 阅读 [ARCHITECTURE.md](ARCHITECTURE.md)
-- **如何开始**: 阅读 [QUICKSTART.md](QUICKSTART.md)
-- **测试情况**: 阅读 [testing/COMPLETE-TEST-REPORT.md](testing/COMPLETE-TEST-REPORT.md)
-- **开发计划**: 查看 [plans/](plans/) 目录
-- **部署指南**: 阅读 [deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md)
-- **Bug 修复**: 阅读 [testing/BUG-REPORT.md](testing/BUG-REPORT.md)
-
-## 📊 文档统计
-
-| 类别 | 文档数量 | 目录 |
-|------|---------|------|
-| 核心文档 | 3 | 根目录 |
-| 架构设计 | 8 | docs/ |
-| 计划文档 | 6 | docs/plans/ |
-| 测试文档 | 13 | docs/testing/ |
-| 开发文档 | 18 | docs/development/ |
-| 部署文档 | 1 | docs/deployment/ |
-| 备份文档 | 2 | docs/backup/ |
-| Agent 文档 | 3 | docs/agents/ |
-| 其他文档 | 6 | docs/ |
-| **总计** | **60+** | - |
-
-## 🔍 搜索提示
-
-### 查找测试相关文档
-```bash
-ls docs/testing/
-```
-
-### 查找计划文档
-```bash
-ls docs/plans/
-```
-
-### 查找开发报告
-```bash
-ls docs/development/PHASE*.md
-```
-
-## 📝 维护说明
-
-### 添加新文档时
-
-1. **测试文档** → 放入 `docs/testing/`
-2. **开发计划** → 放入 `docs/plans/`
-3. **阶段报告** → 放入 `docs/development/`
-4. **部署相关** → 放入 `docs/deployment/`
-5. **备份相关** → 放入 `docs/backup/`
-
-### 文档命名规范
-
-- 使用大写和连字符：`MY-DOCUMENT.md`
-- 计划文档：`*-PLAN.md`
-- 测试文档：`TEST-*.md` 或 `*-TEST-*.md`
-- 报告文档：`*-REPORT.md` 或 `*-SUMMARY.md`
-- 阶段文档：`PHASE*_*.md`
+> **最后更新**: 2026-02-04
+> **文档版本**: 2.2.0
 
 ---
 
-**最后更新**: 2026-01-30
+## 快速导航
+
+### 按角色查找
+
+- **新成员入门**: 阅读 [guides/quick-start.md](guides/quick-start.md)
+- **CLI 使用者**: 查看 [guides/cli-quick-start.md](guides/cli-quick-start.md)
+- **开发人员**: 查看 [architecture/](architecture/) 和 [references/](references/)
+- **测试人员**: 查看 [testing/](testing/) 和 [archive/reports/testing/](archive/reports/testing/)
+- **项目经理**: 查看 [archive/phases/](archive/phases/) 阶段报告
+- **系统管理员**: 查看 [guides/cli-quick-start.md](guides/cli-quick-start.md) 和 [development/CLI-IMPLEMENTATION-SUMMARY.md](development/CLI-IMPLEMENTATION-SUMMARY.md)
+
+### 按需求查找
+
+| 我想... | 推荐文档 |
+|---------|---------|
+| 快速了解项目 | [guides/quick-start.md](guides/quick-start.md) |
+| 学习 CLI 使用 | [guides/cli-quick-start.md](guides/cli-quick-start.md) |
+| 了解系统架构 | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) |
+| 使用 CLI 命令 | [references/CLI-REFERENCE.md](references/CLI-REFERENCE.md) |
+| 查找技术参考 | [references/](references/) |
+| 查看测试报告 | [archive/reports/testing/](archive/reports/testing/) |
+| 查看开发历史 | [archive/phases/](archive/phases/) |
+| 了解功能设计 | [design/](design/) |
+| 查看 CLI 实施总结 | [development/CLI-IMPLEMENTATION-SUMMARY.md](development/CLI-IMPLEMENTATION-SUMMARY.md) |
+| 查看 CLI 测试报告 | [development/CLI-TEST-REPORT.md](development/CLI-TEST-REPORT.md) |
+
+---
+
+## 文档分类
+
+### 1. 设计文档 (design/)
+
+功能设计和系统设计文档。
+
+| 文档 | 状态 | 描述 |
+|------|------|------|
+| system-design.md | ✅ 已实施 | ContentHub 系统设计文档 |
+| cli-system-design.md | ✅ 已实施 | CLI 系统设计文档（13个模块，123个命令） |
+
+### 2. 用户指南 (guides/)
+
+面向用户的操作和使用指南。
+
+| 文档 | 描述 |
+|------|------|
+| quick-start.md | 快速开始指南 |
+| cli-quick-start.md | CLI 快速入门指南 |
+| quick-reference.md | 快速参考手册 |
+
+### 3. 架构文档 (architecture/)
+
+系统架构和技术架构文档。
+
+| 文档 | 描述 |
+|------|------|
+| ARCHITECTURE.md | ContentHub 系统架构说明 |
+
+### 4. 开发文档 (development/)
+
+当前活跃的开发相关文档。
+
+| 文档 | 描述 |
+|------|------|
+| CLI-IMPLEMENTATION-SUMMARY.md | CLI 系统实施总结（13个模块完成） |
+| CLI-TEST-REPORT.md | CLI 系统测试报告 |
+| DOCKER_STRUCTURE.md | Docker 结构说明 |
+| FINAL-GAP-FILLING-COMPLETION-REPORT.md | 差距填补完成报告 |
+| FRONTEND_VALIDATION_SUMMARY.md | 前端验证总结 |
+
+### 5. 技术参考 (references/)
+
+技术工具使用参考和开发规范。
+
+| 文档 | 描述 |
+|------|------|
+| CATEGORIES.md | 文档分类规范 |
+| LIFECYCLE.md | 文档生命周期管理 |
+| TEMPLATES.md | 文档模板规范 |
+| CLI-REFERENCE.md | CLI 命令参考手册（123个命令） |
+| error-handling-quick-reference.md | 错误处理快速参考 |
+| error-handling-summary.md | 错误处理总结 |
+| error-handling-test.md | 错误处理测试 |
+| AUDIT_LOG_USAGE_GUIDE.md | 审计日志使用指南 |
+| RATE_LIMITER_GUIDE.md | 速率限制器指南 |
+
+### 6. 测试文档 (testing/)
+
+当前活跃的测试文档。
+
+| 子目录 | 描述 |
+|--------|------|
+| e2e/ | E2E 测试文档 |
+| guides/ | 测试指南（E2E、单元测试） |
+| screenshots/ | 测试截图 |
+
+### 7. 归档文档 (archive/)
+
+历史文档和已完成项目的记录。
+
+| 子目录 | 描述 |
+|--------|------|
+| phases/ | 各阶段完成报告（PHASE 1-7）|
+| sessions/ | 开发会话记录和临时总结 |
+| reports/ | 各类历史报告 |
+| reports/testing/ | 测试报告归档（37+ 份）|
+
+### 8. 其他文档
+
+| 子目录 | 描述 |
+|--------|------|
+| agents/ | Claude Code Agent 配置 |
+| skills/ | ContentHub 技能配置 |
+| backup/ | 备份相关文档 |
+| deployment/ | 部署指南 |
+
+---
+
+## 文档状态符号
+
+- ✅ **已实施**: 功能已实现并投入使用
+- ❌ **待实施**: 设计完成，等待实现
+- 🔄 **进行中**: 正在开发中
+
+---
+
+## 文档生命周期
+
+ContentHub 文档遵循完整的生命周期管理：
+
+```
+设计阶段 → 实施阶段 → 完成归档
+   ↓           ↓           ↓
+design/  → 对应目录  → archive/
+(❌待实施)  (✅已实施)   (历史记录)
+```
+
+详见 [references/CATEGORIES.md](references/CATEGORIES.md) 和 [references/LIFECYCLE.md](references/LIFECYCLE.md)
+
+---
+
+## 文档统计
+
+| 分类 | 文档数量 | 状态 |
+|------|---------|------|
+| 设计文档 | 2 | 活跃 |
+| 用户指南 | 4 | 活跃 |
+| 架构文档 | 1 | 活跃 |
+| 开发文档 | 6 | 活跃 |
+| 技术参考 | 10 | 活跃 |
+| 测试文档 | 3 | 活跃 |
+| 归档文档 | 77+ | 归档 |
+| 其他 | 10+ | 辅助 |
+
+**总计**: 113+ 份文档
+
+---
+
+## 维护指南
+
+### 添加新文档
+
+1. **设计阶段**: 在 `design/` 创建 `<功能名>-design.md`，标记为 ❌
+2. **实施完成**: 更新状态为 ✅，添加实施时间
+3. **可选转移**: 移到对应目录或保留在 `design/`
+4. **历史归档**: 过期文档移到 `archive/` 对应子目录
+
+### 文档命名规范
+
+| 类型 | 格式 | 示例 |
+|------|------|------|
+| 设计文档 | `<功能名>-design.md` | `workflow-scaffolding-design.md` |
+| 使用指南 | `<功能名>-guide.md` | `translation-workflow-guide.md` |
+| 快速开始 | `quick-start.md` | 固定命名 |
+| 计划文档 | `<功能名>-PLAN.md` | `database-refactoring-PLAN.md` |
+| 总结文档 | `<功能名>-SUMMARY.md` | `database-refactoring-SUMMARY.md` |
+| 完成报告 | `<阶段>-COMPLETION-REPORT.md` | `STAGE-4-COMPLETION-REPORT.md` |
+
+### 搜索文档
+
+```bash
+# 查找测试文档
+ls docs/testing/
+
+# 查找阶段报告
+ls docs/archive/phases/
+
+# 查找归档报告
+ls docs/archive/reports/
+```
+
+---
+
+## 相关链接
+
+- **项目主 README**: [../README.md](../README.md)
+- **Claude 开发指南**: [../CLAUDE.md](../CLAUDE.md)
+- **GitHub 仓库**: [ContentHub](https://github.com/your-org/content-hub)
+
+---
+
 **维护者**: ContentHub 开发团队
+**文档框架**: project-documentation-management v2.0
