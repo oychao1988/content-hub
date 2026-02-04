@@ -32,6 +32,25 @@ from app.models.platform import Platform
 app = typer.Typer(help="配置管理")
 
 
+@app.command("list")
+def list_all_configs():
+    """列出所有配置分类"""
+    from rich.console import Console
+    from rich.tree import Tree
+
+    console = Console()
+
+    tree = Tree("📋 ContentHub 配置管理")
+    tree.add("写作风格配置 (writing-style)")
+    tree.add("内容主题配置 (content-theme)")
+    tree.add("系统参数配置 (system-params)")
+    tree.add("平台配置 (platform-config)")
+
+    console.print(tree)
+    print_info("\n使用 'contenthub config <category> list' 查看具体配置")
+    print_info("例如: contenthub config writing-style list")
+
+
 # ==================== 写作风格配置 ====================
 writing_style_app = typer.Typer(help="写作风格配置")
 app.add_typer(writing_style_app, name="writing-style")

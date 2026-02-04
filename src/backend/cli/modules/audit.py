@@ -30,6 +30,91 @@ from app.services.audit_service import AuditService
 app = typer.Typer(help="审计日志")
 
 
+@app.command("list")
+def list_audit_logs(
+    event_type: str = typer.Option(None, "--event-type", "-e", help="事件类型"),
+    user_id: int = typer.Option(None, "--user-id", "-u", help="用户 ID"),
+    result: str = typer.Option(None, "--result", "-r", help="结果筛选 (success/failure)"),
+    start_date: str = typer.Option(None, "--start", help="开始日期 (YYYY-MM-DD)"),
+    end_date: str = typer.Option(None, "--end", help="结束日期 (YYYY-MM-DD)"),
+    search: str = typer.Option(None, "--search", "-s", help="搜索关键字"),
+    limit: int = typer.Option(20, "--limit", "-l", help="显示记录数"),
+    page: int = typer.Option(1, "--page", help="页码"),
+    page_size: int = typer.Option(20, "--page-size", help="每页数量")
+):
+    """列出审计日志（简洁版本）"""
+    try:
+        with get_session_local()() as db:
+            # 构建过滤条件
+            filters = {}
+            if event_type:
+                filters["event_type"] = event_type
+            if user_id:
+                filters["user_id"] = user_id
+            if result:
+                filters["result"] = result
+            if start_date:
+                filters["start_date"] = datetime.strptime(start_date, "%Y-%m-%d").date()
+            if end_date:
+                filters["end_date"] = datetime.strptime(end_date, "%Y-%m-%d").date()
+            if search:
+                filters["search"] = search
+
+            # 查询日志（使用 limit 参数作为 page_size）
+            result_data = AuditService.get_audit_logs(
+                db,
+                filters=filters,
+                page=page,
+                page_size=limit or page_size
+            )
+
+            logs = result_data["logs"]
+            total = result_data["total"]
+
+            if not logs:
+                print_warning("未找到审计日志")
+                return
+
+            # 格式化输出
+            data = []
+            for log in logs:
+                # 获取事件名称
+                event_name = AuditService.EVENT_TYPES.get(log.event_type, log.event_type)
+
+                # 格式化详细信息
+                details_str = "-"
+                if log.details:
+                    if isinstance(log.details, dict):
+                        # 提取关键信息
+                        if "action" in log.details:
+                            details_str = f"操作: {log.details['action']}"
+                        elif "message" in log.details:
+                            details_str = log.details["message"]
+                        else:
+                            details_str = f"{len(log.details)} 个字段"
+                    else:
+                        details_str = str(log.details)[:50]
+
+                data.append({
+                    "ID": log.id,
+                    "时间": format_datetime(log.timestamp),
+                    "事件": event_name,
+                    "类型": log.event_type,
+                    "用户ID": log.user_id or "-",
+                    "IP": log.ip_address or "-",
+                    "结果": "成功" if log.result == "success" else "失败",
+                    "详情": details_str,
+                })
+
+            print_table(data, title=f"审计日志列表 (共 {total} 条)", show_header=True)
+
+    except ValueError as e:
+        print_error(f"日期格式错误: {e}")
+        print_info("请使用 YYYY-MM-DD 格式")
+    except Exception as e:
+        handle_error(e)
+
+
 @app.command("logs")
 def list_logs(
     event_type: str = typer.Option(None, "--event-type", "-e", help="事件类型"),
