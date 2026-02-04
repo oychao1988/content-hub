@@ -2,8 +2,8 @@
 
 欢迎来到 ContentHub 项目文档中心。本文档采用标准化的分类管理体系，按文档用途和生命周期组织。
 
-> **最后更新**: 2026-02-04
-> **文档版本**: 2.2.0
+> **最后更新**: 2026-02-05
+> **文档版本**: 2.3.0
 
 ---
 
@@ -32,6 +32,7 @@
 | 了解功能设计 | [design/](design/) |
 | 查看 CLI 实施总结 | [development/CLI-IMPLEMENTATION-SUMMARY.md](development/CLI-IMPLEMENTATION-SUMMARY.md) |
 | 查看 CLI 测试报告 | [development/CLI-TEST-REPORT.md](development/CLI-TEST-REPORT.md) |
+| 查看 CLI 测试项目 | [archive/cli-testing/](archive/cli-testing/) |
 
 ---
 
@@ -71,7 +72,8 @@
 | 文档 | 描述 |
 |------|------|
 | CLI-IMPLEMENTATION-SUMMARY.md | CLI 系统实施总结（13个模块完成） |
-| CLI-TEST-REPORT.md | CLI 系统测试报告 |
+| CLI-TEST-REPORT.md | CLI 系统测试报告（覆盖率72.36%） |
+| CLI-TEST-FIX-SUMMARY.md | CLI 测试 Bug 修复总结 |
 | DOCKER_STRUCTURE.md | Docker 结构说明 |
 | FINAL-GAP-FILLING-COMPLETION-REPORT.md | 差距填补完成报告 |
 | FRONTEND_VALIDATION_SUMMARY.md | 前端验证总结 |
@@ -112,6 +114,7 @@
 | sessions/ | 开发会话记录和临时总结 |
 | reports/ | 各类历史报告 |
 | reports/testing/ | 测试报告归档（37+ 份）|
+| cli-testing/ | CLI 测试项目归档（7份）|
 
 ### 8. 其他文档
 
@@ -119,6 +122,7 @@
 |--------|------|
 | agents/ | Claude Code Agent 配置 |
 | skills/ | ContentHub 技能配置 |
+| plans/ | 项目实施计划（3份）|
 | backup/ | 备份相关文档 |
 | deployment/ | 部署指南 |
 
@@ -154,13 +158,14 @@ design/  → 对应目录  → archive/
 | 设计文档 | 2 | 活跃 |
 | 用户指南 | 4 | 活跃 |
 | 架构文档 | 1 | 活跃 |
-| 开发文档 | 6 | 活跃 |
+| 开发文档 | 7 | 活跃 |
 | 技术参考 | 10 | 活跃 |
 | 测试文档 | 3 | 活跃 |
+| 计划文档 | 3 | 活跃 |
 | 归档文档 | 77+ | 归档 |
-| 其他 | 10+ | 辅助 |
+| 其他 | 44+ | 辅助 |
 
-**总计**: 113+ 份文档
+**总计**: 151+ 份文档
 
 ---
 
@@ -209,3 +214,9 @@ ls docs/archive/reports/
 
 **维护者**: ContentHub 开发团队
 **文档框架**: project-documentation-management v2.0
+
+---
+
+## 快速查找索引
+
+需要快速找到文档？请查看 [INDEX.md](INDEX.md) 获取完整的文档查找指南。
