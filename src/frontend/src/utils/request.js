@@ -39,8 +39,14 @@ request.interceptors.request.use(
   (config) => {
     const userStore = useUserStore()
 
-    // 添加认证 token
-    if (userStore.token) {
+    // 登录和注册接口不需要添加 token
+    const isAuthEndpoint = config.url && (
+      config.url.includes('/auth/login') ||
+      config.url.includes('/auth/register')
+    )
+
+    // 添加认证 token（登录和注册接口除外）
+    if (userStore.token && !isAuthEndpoint) {
       config.headers.Authorization = `Bearer ${userStore.token}`
     }
 
