@@ -225,16 +225,22 @@ def generate(
     account_id: int = typer.Option(..., "--account-id", "-a", help="账号 ID"),
     topic: str = typer.Option(..., "--topic", "-t", help="选题"),
     keywords: str = typer.Option(None, "--keywords", "-k", help="关键词（逗号分隔）"),
-    category: str = typer.Option("默认", "--category", "-c", help="内容板块")
+    category: str = typer.Option("默认", "--category", "-c", help="内容板块"),
+    requirements: str = typer.Option(None, "--requirements", "-r", help="创作要求"),
+    tone: str = typer.Option("友好专业", "--tone", help="语气风格"),
 ):
-    """生成内容（调用 content-creator）"""
-    try:
-        # 检查是否配置了 CLI
-        if not settings.CREATOR_CLI_PATH:
-            print_warning("未配置 content-creator CLI")
-            print_info("请在 .env 文件中设置 CREATOR_CLI_PATH")
-            print_info("将创建草稿内容...")
+    """生成内容（调用 content-creator）
 
+    流程：
+    1. 先创建草稿记录（状态：publishing-生成中）
+    2. 调用 content-creator 生成内容
+    3. 更新草稿记录（状态：draft-草稿）
+
+    状态说明：
+    - publishing: 正在生成内容
+    - draft: 生成完成，等待审核
+    """
+    try:
         with get_session_local()() as db:
             # 检查账号是否存在
             from app.models.account import Account
@@ -243,50 +249,101 @@ def generate(
                 print_error(f"账号不存在: ID {account_id}")
                 raise typer.Exit(1)
 
-            print_info(f"正在生成内容...")
+            # 检查是否配置了 CLI
+            if not settings.CREATOR_CLI_PATH:
+                print_warning("未配置 content-creator CLI")
+                print_info("请在 .env 文件中设置 CREATOR_CLI_PATH")
+                raise typer.Exit(1)
+
+            print_info(f"准备生成内容...")
             print_info(f"账号: {account.name}")
             print_info(f"选题: {topic}")
             print_info(f"关键词: {keywords or '无'}")
 
-            # 尝试调用 content-creator
-            generated_content = None
-            if settings.CREATOR_CLI_PATH:
-                try:
-                    result = content_creator_service.create_content(
-                        account_id=account_id,
-                        topic=topic,
-                        category=category
-                    )
+            # 构建创作要求
+            if not requirements:
+                requirements = f"写一篇关于'{topic}'的{category}类文章，要求内容详实、结构清晰"
 
-                    # 从结果中提取内容
-                    if result and "content" in result:
-                        generated_content = result["content"]
-                        print_success("内容生成成功")
-                    else:
-                        print_warning("生成器未返回内容，将创建草稿")
+            # 步骤1：先创建草稿记录（状态：生成中）
+            print_info("步骤 1/3: 创建草稿记录...")
 
-                except Exception as e:
-                    print_warning(f"内容生成失败: {e}")
-                    print_info("将创建草稿内容...")
-
-            # 创建内容记录
-            content_data = {
+            initial_content_data = {
                 "title": topic,
                 "content_type": "article",
-                "content": generated_content or f"# {topic}\n\n待生成内容...",
+                "content": f"# {topic}\n\n正在生成内容，请稍候...",
                 "summary": f"基于选题: {topic}",
                 "category": category,
                 "topic": topic,
-                "status": "draft",
+                "publish_status": "publishing",  # 标记为生成中（使用 publishing 状态）
                 "tags": [keyword.strip() for keyword in keywords.split(",")] if keywords else [],
             }
 
-            content = content_service.create_content(db, content_data, account_id)
+            content = content_service.create_content(db, initial_content_data, account_id)
+            print_success(f"草稿记录创建成功 (ID: {content.id})")
 
-            print_success(f"内容保存成功 (ID: {content.id})")
+            # 步骤2：调用 content-creator 生成内容
+            print_info("步骤 2/3: 正在调用 AI 生成内容...")
 
-            # 显示内容信息
+            generated_content = None
+            generated_images = []
+            quality_score = None
+            generation_error = None
+
+            try:
+                result = content_creator_service.create_content(
+                    topic=topic,
+                    requirements=requirements,
+                    target_audience=category if category != "默认" else "普通读者",
+                    tone=tone
+                )
+
+                # 从结果中提取内容
+                if result and result.get("content"):
+                    generated_content = result["content"]
+                    generated_images = result.get("images", [])
+                    quality_score = result.get("quality_score")
+
+                    print_success("内容生成成功")
+                    if generated_images:
+                        print_info(f"生成 {len(generated_images)} 张配图")
+                    if quality_score:
+                        print_info(f"质量评分: {quality_score}/10")
+                else:
+                    generation_error = "生成器未返回内容"
+                    print_warning(generation_error)
+
+            except Exception as e:
+                generation_error = str(e)
+                print_warning(f"内容生成失败: {generation_error}")
+
+            # 步骤3：更新草稿记录
+            print_info("步骤 3/3: 更新内容记录...")
+
+            update_data = {
+                "content": generated_content if generated_content else f"# {topic}\n\n生成失败，请重试。\n错误信息: {generation_error}",
+                "summary": f"基于选题: {topic}",
+                "publish_status": "draft",  # 生成完成后改为草稿状态
+            }
+
+            # 更新摘要
+            if generated_images:
+                update_data["summary"] += f"\n包含 {len(generated_images)} 张配图"
+
+            # 更新内容
+            content = content_service.update_content(db, content.id, update_data)
+
+            print_success(f"内容记录更新成功 (ID: {content.id})")
+
+            # 显示最终内容信息
             content_info = format_content_info(content, detailed=True)
+
+            # 添加生成信息
+            if quality_score:
+                content_info["质量评分"] = f"{quality_score}/10"
+            if generated_images:
+                content_info["配图数量"] = str(len(generated_images))
+            if generation_error:
+                content_info["生成状态"] = "失败"
 
             info_table = Table(title="内容详情", show_header=True)
             info_table.add_column("项目", style="cyan")
@@ -298,6 +355,11 @@ def generate(
             from rich.console import Console
             console = Console()
             console.print(info_table)
+
+            # 如果生成失败，给出提示
+            if not generated_content:
+                print_warning("\n内容生成失败，但已创建草稿记录")
+                print_info("您可以稍后手动编辑内容，或使用 update 命令重新生成")
 
     except Exception as e:
         handle_error(e)

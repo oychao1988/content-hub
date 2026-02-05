@@ -50,7 +50,7 @@ class ContentService:
                 content_type=request["content_type"],
                 content=request["content"],
                 summary=request.get("summary"),
-                publish_status=request.get("status", "draft"),
+                publish_status=request.get("publish_status") or request.get("status", "draft"),
                 tags=request.get("tags", []),
                 cover_image=request.get("cover_image"),
                 created_at=datetime.now(),

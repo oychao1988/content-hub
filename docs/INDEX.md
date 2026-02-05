@@ -26,6 +26,7 @@
 **常用文档**：
 - [guides/cli-quick-start.md](guides/cli-quick-start.md) - CLI 快速入门
 - [references/CLI-REFERENCE.md](references/CLI-REFERENCE.md) - 完整命令参考（123个命令）
+- [references/content-creator-integration.md](references/content-creator-integration.md) - Content-Creator集成指南
 - [development/CLI-TEST-REPORT.md](development/CLI-TEST-REPORT.md) - CLI 测试报告
 
 **快速查找命令**：
@@ -50,6 +51,7 @@ contenthub content --help
 
 **模块开发**：
 - [development/CLI-IMPLEMENTATION-SUMMARY.md](development/CLI-IMPLEMENTATION-SUMMARY.md) - CLI 实施总结
+- [development/2026-02-05-content-creator-integration.md](development/2026-02-05-content-creator-integration.md) - Content-Creator集成报告
 - [references/CATEGORIES.md](references/CATEGORIES.md) - 文档分类规范
 - [references/TEMPLATES.md](references/TEMPLATES.md) - 文档模板
 
