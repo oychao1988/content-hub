@@ -43,7 +43,7 @@ async def create_account(
     current_user = Depends(get_current_user)
 ):
     """创建账号"""
-    return account_service.create_account(db, account.dict())
+    return account_service.create_account(db, account.dict(), current_user_id=current_user.id)
 
 @router.put("/{id}", response_model=AccountRead)
 @require_permission(Permission.ACCOUNT_UPDATE)
@@ -54,7 +54,7 @@ async def update_account(
     current_user = Depends(get_current_user)
 ):
     """更新账号"""
-    updated_account = account_service.update_account(db, id, account.dict(exclude_unset=True))
+    updated_account = account_service.update_account(db, id, account.dict(exclude_unset=True), current_user_id=current_user.id)
     if not updated_account:
         raise HTTPException(status_code=404, detail="账号不存在")
     return updated_account

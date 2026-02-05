@@ -42,7 +42,7 @@ class AccountService:
         return db.query(Account).filter(Account.id == account_id).first()
 
     @staticmethod
-    def create_account(db: Session, account_data: dict) -> Account:
+    def create_account(db: Session, account_data: dict, current_user_id: int = None) -> Account:
         """创建账号"""
         # 字段映射：display_name -> name
         if 'display_name' in account_data:
@@ -56,6 +56,11 @@ class AccountService:
         # 移除 Account 模型中不存在的字段
         account_data.pop('niche', None)
 
+        # 设置创建人（方案 A: 审计追踪）
+        if current_user_id:
+            account_data['created_by'] = current_user_id
+            account_data['updated_by'] = current_user_id
+
         account = Account(**account_data)
         db.add(account)
         db.commit()
@@ -67,12 +72,17 @@ class AccountService:
         return account
 
     @staticmethod
-    def update_account(db: Session, account_id: int, account_data: dict) -> Optional[Account]:
+    def update_account(db: Session, account_id: int, account_data: dict, current_user_id: int = None) -> Optional[Account]:
         """更新账号"""
         account = db.query(Account).filter(Account.id == account_id).first()
         if account:
             for key, value in account_data.items():
                 setattr(account, key, value)
+
+            # 更新修改人（方案 A: 审计追踪）
+            if current_user_id:
+                account.updated_by = current_user_id
+
             db.commit()
             db.refresh(account)
 

@@ -111,6 +111,19 @@ def format_account_info(account: Account, detailed: bool = False) -> dict:
             "更新时间": format_datetime(account.updated_at),
         })
 
+        # 显示用户关联信息（方案 A 和 B）
+        if account.owner_id:
+            owner_name = account.owner.full_name if account.owner else f"ID:{account.owner_id}"
+            info["所有者"] = owner_name
+
+        if account.created_by:
+            creator_name = account.creator.full_name if account.creator else f"ID:{account.created_by}"
+            info["创建人"] = creator_name
+
+        if account.updated_by:
+            updater_name = account.updater.full_name if account.updater else f"ID:{account.updated_by}"
+            info["修改人"] = updater_name
+
         # 显示微信配置（如果有）
         if account.wechat_app_id:
             info["微信AppID"] = account.wechat_app_id
@@ -151,12 +164,15 @@ def list_accounts(
             for account in accounts:
                 customer_name = account.customer.name if account.customer else "未知"
                 platform_name = account.platform.name if account.platform else "未知"
+                owner_name = account.owner.full_name if account.owner else "-"
+
                 data.append({
                     "ID": account.id,
                     "名称": account.name,
                     "目录名": account.directory_name,
                     "客户": customer_name,
                     "平台": platform_name,
+                    "所有者": owner_name,
                     "状态": "激活" if account.is_active else "停用",
                     "创建时间": format_datetime(account.created_at),
                 })
@@ -172,6 +188,7 @@ def create(
     name: str = typer.Option(..., "--name", "-n", help="账号名称"),
     customer_id: int = typer.Option(..., "--customer-id", "-c", help="客户 ID"),
     platform_id: int = typer.Option(..., "--platform-id", "-p", help="平台 ID"),
+    owner_id: int = typer.Option(None, "--owner-id", "-o", help="账号所有者 ID（可选）"),
     description: str = typer.Option(None, "--description", "-d", help="账号描述"),
     status: str = typer.Option("active", "--status", "-s", help="账号状态 (active/inactive)")
 ):
@@ -181,6 +198,7 @@ def create(
             # 验证客户和平台是否存在
             from app.models.customer import Customer
             from app.models.platform import Platform
+            from app.models.user import User
 
             customer = db.query(Customer).filter(Customer.id == customer_id).first()
             if not customer:
@@ -192,6 +210,13 @@ def create(
                 print_error(f"平台不存在: ID {platform_id}")
                 raise typer.Exit(1)
 
+            # 验证所有者是否存在
+            if owner_id:
+                owner = db.query(User).filter(User.id == owner_id).first()
+                if not owner:
+                    print_error(f"用户不存在: ID {owner_id}")
+                    raise typer.Exit(1)
+
             # 准备账号数据
             account_data = {
                 "name": name,
@@ -201,6 +226,10 @@ def create(
                 "description": description,
                 "is_active": status.lower() == "active"
             }
+
+            # 添加所有者 ID（方案 B）
+            if owner_id:
+                account_data["owner_id"] = owner_id
 
             # 创建账号
             print_info("正在创建账号...")
@@ -230,6 +259,7 @@ def create(
 def update(
     account_id: int = typer.Argument(..., help="账号 ID"),
     name: str = typer.Option(None, "--name", "-n", help="账号名称"),
+    owner_id: int = typer.Option(None, "--owner-id", "-o", help="账号所有者 ID"),
     description: str = typer.Option(None, "--description", "-d", help="账号描述"),
     status: str = typer.Option(None, "--status", "-s", help="账号状态 (active/inactive)")
 ):
@@ -246,6 +276,14 @@ def update(
             update_data = {}
             if name:
                 update_data["name"] = name
+            if owner_id:
+                # 验证用户是否存在
+                from app.models.user import User
+                user = db.query(User).filter(User.id == owner_id).first()
+                if not user:
+                    print_error(f"用户不存在: ID {owner_id}")
+                    raise typer.Exit(1)
+                update_data["owner_id"] = owner_id
             if description is not None:
                 update_data["description"] = description
             if status:

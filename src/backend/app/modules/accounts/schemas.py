@@ -10,6 +10,7 @@ class AccountCreate(BaseModel):
     """创建账号请求模型"""
     customer_id: int = Field(..., description="客户 ID")
     platform_id: int = Field(..., description="平台 ID")
+    owner_id: Optional[int] = Field(None, description="账号所有者 ID")
     directory_name: str = Field(..., min_length=1, max_length=100, description="目录名称（唯一）")
     display_name: str = Field(..., min_length=1, max_length=200, description="显示名称")
     description: Optional[str] = Field(None, max_length=500, description="账号描述")
@@ -20,6 +21,7 @@ class AccountCreate(BaseModel):
             "example": {
                 "customer_id": 1,
                 "platform_id": 1,
+                "owner_id": 1,
                 "directory_name": "tech_blog",
                 "display_name": "技术博客",
                 "description": "分享技术文章和教程",
@@ -30,6 +32,7 @@ class AccountCreate(BaseModel):
 
 class AccountUpdate(BaseModel):
     """更新账号请求模型"""
+    owner_id: Optional[int] = Field(None, description="账号所有者 ID")
     directory_name: Optional[str] = Field(None, min_length=1, max_length=100, description="目录名称（唯一）")
     display_name: Optional[str] = Field(None, min_length=1, max_length=200, description="显示名称")
     description: Optional[str] = Field(None, max_length=500, description="账号描述")
@@ -38,6 +41,7 @@ class AccountUpdate(BaseModel):
     class Config:
         schema_extra = {
             "example": {
+                "owner_id": 2,
                 "display_name": "技术博客（更新）",
                 "description": "分享最新技术文章和教程"
             }
@@ -50,6 +54,12 @@ class AccountRead(BaseModel):
     name: str
     directory_name: str
     description: Optional[str] = None
+    customer_id: int
+    platform_id: int
+    # 用户关联字段
+    owner_id: Optional[int] = None
+    created_by: Optional[int] = None
+    updated_by: Optional[int] = None
     # 兼容前端字段
     platform_name: Optional[str] = None  # 平台名称
     account_id: Optional[str] = None  # 账号ID（使用directory_name）

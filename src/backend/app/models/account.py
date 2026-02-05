@@ -15,6 +15,14 @@ class Account(Base):
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True, comment="客户 ID")
     platform_id = Column(Integer, ForeignKey("platforms.id"), nullable=False, index=True, comment="平台 ID")
+
+    # 用户关联（方案 A: 审计追踪）
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True, comment="创建人 ID")
+    updated_by = Column(Integer, ForeignKey("users.id"), nullable=True, comment="最后修改人 ID")
+
+    # 用户关联（方案 B: 账号所有者）
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True, comment="账号所有者 ID")
+
     name = Column(String(100), nullable=False, comment="账号名称")
     directory_name = Column(String(100), nullable=False, comment="目录名称")
     description = Column(Text, comment="账号描述")
@@ -32,6 +40,12 @@ class Account(Base):
     # 关系
     customer = relationship("Customer", back_populates="accounts")
     platform = relationship("Platform", back_populates="accounts")
+
+    # 用户关系
+    creator = relationship("User", foreign_keys=[created_by], backref="created_accounts")
+    updater = relationship("User", foreign_keys=[updated_by], backref="updated_accounts")
+    owner = relationship("User", foreign_keys=[owner_id], backref="owned_accounts")
+
     configs = relationship("AccountConfig", back_populates="account", cascade="all, delete-orphan")
     writing_style = relationship("WritingStyle", back_populates="account", uselist=False, cascade="all, delete-orphan")
     content_sections = relationship("ContentSection", back_populates="account", cascade="all, delete-orphan")
