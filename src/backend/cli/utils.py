@@ -20,7 +20,8 @@ def print_table(
     data: List[Dict[str, Any]],
     title: Optional[str] = None,
     show_header: bool = True,
-    header_style: str = "bold magenta"
+    header_style: str = "bold magenta",
+    output_format: str = "table"
 ):
     """打印表格
 
@@ -29,27 +30,46 @@ def print_table(
         title: 表格标题
         show_header: 是否显示表头
         header_style: 表头样式
+        output_format: 输出格式 (table/json/csv)
     """
     if not data:
-        console.print("[dim]无数据[/dim]")
+        if output_format == "json":
+            import json
+            typer.echo(json.dumps([], ensure_ascii=False))
+        elif output_format == "csv":
+            typer.echo("")
+        else:
+            console.print("[dim]无数据[/dim]")
         return
 
-    table = Table(
-        title=title,
-        show_header=show_header,
-        header_style=header_style,
-        show_lines=True
-    )
+    if output_format == "json":
+        import json
+        typer.echo(json.dumps(data, ensure_ascii=False, indent=2))
+    elif output_format == "csv":
+        import csv
+        import io
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=data[0].keys())
+        writer.writeheader()
+        writer.writerows(data)
+        typer.echo(output.getvalue().rstrip())
+    else:  # table
+        table = Table(
+            title=title,
+            show_header=show_header,
+            header_style=header_style,
+            show_lines=True
+        )
 
-    # 添加列
-    for key in data[0].keys():
-        table.add_column(str(key))
+        # 添加列
+        for key in data[0].keys():
+            table.add_column(str(key))
 
-    # 添加行
-    for row in data:
-        table.add_row(*[str(v) if v is not None else "" for v in row.values()])
+        # 添加行
+        for row in data:
+            table.add_row(*[str(v) if v is not None else "" for v in row.values()])
 
-    console.print(table)
+        console.print(table)
 
 
 def print_success(message: str):
@@ -236,3 +256,59 @@ def format_output(data: Any, output_format: str = "table") -> str:
 
 # 导入 typer 用于错误处理
 import typer
+
+
+def get_global_format(ctx: typer.Context) -> str:
+    """从 context 中获取全局 format 选项
+
+    Args:
+        ctx: Typer Context 对象
+
+    Returns:
+        输出格式 (table/json/csv)
+    """
+    if ctx and ctx.obj and isinstance(ctx.obj, dict):
+        return ctx.obj.get("format", "table")
+    return "table"
+
+
+def get_global_user(ctx: typer.Context) -> str:
+    """从 context 中获取全局 user 选项
+
+    Args:
+        ctx: Typer Context 对象
+
+    Returns:
+        操作用户名
+    """
+    if ctx and ctx.obj and isinstance(ctx.obj, dict):
+        return ctx.obj.get("user", "cli-user")
+    return "cli-user"
+
+
+def is_quiet_mode(ctx: typer.Context) -> bool:
+    """检查是否是静默模式
+
+    Args:
+        ctx: Typer Context 对象
+
+    Returns:
+        是否是静默模式
+    """
+    if ctx and ctx.obj and isinstance(ctx.obj, dict):
+        return ctx.obj.get("quiet", False)
+    return False
+
+
+def is_debug_mode(ctx: typer.Context) -> bool:
+    """检查是否是调试模式
+
+    Args:
+        ctx: Typer Context 对象
+
+    Returns:
+        是否是调试模式
+    """
+    if ctx and ctx.obj and isinstance(ctx.obj, dict):
+        return ctx.obj.get("debug", False)
+    return False

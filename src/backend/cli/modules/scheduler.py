@@ -21,6 +21,7 @@ from cli.utils import (
     format_datetime,
     format_bool,
     handle_error,
+    get_global_format,
 )
 from app.db.sql_db import get_session_local
 from app.models.scheduler import ScheduledTask, TaskExecution
@@ -111,6 +112,7 @@ def format_task_info(task: ScheduledTask, detailed: bool = False) -> dict:
 
 @app.command("list")
 def list_tasks(
+    ctx: typer.Context,
     status: str = typer.Option(None, "--status", "-s", help="状态筛选 (active/inactive)"),
     type: str = typer.Option(None, "--type", "-t", help="任务类型筛选 (content_generation/publishing)"),
     page: int = typer.Option(1, "--page", "-p", help="页码"),
@@ -131,10 +133,6 @@ def list_tasks(
                 limit=page_size
             )
 
-            if not tasks:
-                print_warning("未找到定时任务")
-                return
-
             # 格式化输出
             data = []
             for task in tasks:
@@ -149,7 +147,18 @@ def list_tasks(
                     "创建时间": format_datetime(task.created_at),
                 })
 
-            print_table(data, title=f"定时任务列表 (第 {page} 页，共 {len(tasks)} 条)", show_header=True)
+            # 获取全局输出格式
+            output_format = get_global_format(ctx)
+
+            if not tasks:
+                if output_format != "table":
+                    # JSON/CSV 格式时输出空列表
+                    print_table([], output_format=output_format)
+                else:
+                    print_warning("未找到定时任务")
+                return
+
+            print_table(data, title=f"定时任务列表 (第 {page} 页，共 {len(tasks)} 条)", show_header=True, output_format=output_format)
 
     except Exception as e:
         handle_error(e)

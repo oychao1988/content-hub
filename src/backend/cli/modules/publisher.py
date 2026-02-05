@@ -21,6 +21,7 @@ from cli.utils import (
     confirm_action,
     format_datetime,
     handle_error,
+    get_global_format,
 )
 from app.db.sql_db import get_session_local
 from app.models.publisher import PublishLog
@@ -110,6 +111,7 @@ def format_publish_log_info(log: PublishLog, detailed: bool = False) -> dict:
 
 @app.command("history")
 def publish_history(
+    ctx: typer.Context,
     account_id: int = typer.Option(None, "--account-id", "-a", help="按账号 ID 筛选"),
     status: str = typer.Option(None, "--status", "-s", help="按状态筛选 (pending/success/failed)"),
     limit: int = typer.Option(20, "--limit", "-n", help="显示数量")
@@ -124,10 +126,6 @@ def publish_history(
                 status=status,
                 limit=limit
             )
-
-            if not logs:
-                print_warning("未找到发布记录")
-                return
 
             # 格式化输出
             data = []
@@ -144,7 +142,18 @@ def publish_history(
                     "创建时间": format_datetime(log.created_at),
                 })
 
-            print_table(data, title=f"发布历史 (共 {len(logs)} 条)", show_header=True)
+            # 获取全局输出格式
+            output_format = get_global_format(ctx)
+
+            if not logs:
+                if output_format != "table":
+                    # JSON/CSV 格式时输出空列表
+                    print_table([], output_format=output_format)
+                else:
+                    print_warning("未找到发布记录")
+                return
+
+            print_table(data, title=f"发布历史 (共 {len(logs)} 条)", show_header=True, output_format=output_format)
 
     except Exception as e:
         handle_error(e)
@@ -329,6 +338,7 @@ def batch_publish(
 
 @app.command("records")
 def publish_records(
+    ctx: typer.Context,
     account_id: int = typer.Option(None, "--account-id", "-a", help="按账号 ID 筛选"),
     status: str = typer.Option(None, "--status", "-s", help="按状态筛选"),
     limit: int = typer.Option(20, "--limit", "-n", help="显示数量")
@@ -343,10 +353,6 @@ def publish_records(
                 status=status,
                 limit=limit
             )
-
-            if not logs:
-                print_warning("未找到发布记录")
-                return
 
             # 格式化输出（更详细的格式）
             data = []
@@ -364,7 +370,18 @@ def publish_records(
                     "发布时间": format_datetime(log.publish_time),
                 })
 
-            print_table(data, title=f"发布记录 (共 {len(logs)} 条)", show_header=True)
+            # 获取全局输出格式
+            output_format = get_global_format(ctx)
+
+            if not logs:
+                if output_format != "table":
+                    # JSON/CSV 格式时输出空列表
+                    print_table([], output_format=output_format)
+                else:
+                    print_warning("未找到发布记录")
+                return
+
+            print_table(data, title=f"发布记录 (共 {len(logs)} 条)", show_header=True, output_format=output_format)
 
     except Exception as e:
         handle_error(e)

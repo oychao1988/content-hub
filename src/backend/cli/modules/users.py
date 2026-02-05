@@ -22,6 +22,7 @@ from cli.utils import (
     format_datetime,
     format_bool,
     handle_error,
+    get_global_format,
 )
 from app.db.sql_db import get_session_local
 from app.models.user import User
@@ -196,6 +197,7 @@ def format_user_info(user: User, include_password: bool = False, password: Optio
 
 @app.command("list")
 def list_users(
+    ctx: typer.Context,
     role: str = typer.Option(None, "--role", "-r", help="按角色筛选 (admin/operator/customer)"),
     status: str = typer.Option(None, "--status", "-s", help="按状态筛选 (active/inactive)"),
     page: int = typer.Option(1, "--page", "-p", help="页码"),
@@ -221,10 +223,6 @@ def list_users(
             # 查询用户
             users = list_users_db(db, role=role, is_active=is_active, skip=skip, limit=page_size)
 
-            if not users:
-                print_warning("未找到用户")
-                return
-
             # 格式化输出
             data = []
             for user in users:
@@ -238,7 +236,18 @@ def list_users(
                     "创建时间": format_datetime(user.created_at),
                 })
 
-            print_table(data, title=f"用户列表 (第 {page} 页，共 {len(users)} 条)", show_header=True)
+            # 获取全局输出格式
+            output_format = get_global_format(ctx)
+
+            if not users:
+                if output_format != "table":
+                    # JSON/CSV 格式时输出空列表
+                    print_table([], output_format=output_format)
+                else:
+                    print_warning("未找到用户")
+                return
+
+            print_table(data, title=f"用户列表 (第 {page} 页，共 {len(users)} 条)", show_header=True, output_format=output_format)
 
     except Exception as e:
         handle_error(e)

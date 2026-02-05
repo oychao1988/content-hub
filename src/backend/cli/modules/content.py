@@ -23,6 +23,7 @@ from cli.utils import (
     format_datetime,
     format_list,
     handle_error,
+    get_global_format,
 )
 from app.db.sql_db import get_session_local
 from app.models.content import Content
@@ -114,6 +115,7 @@ def format_content_info(content: Content, detailed: bool = False) -> dict:
 
 @app.command("list")
 def list_contents(
+    ctx: typer.Context,
     account_id: int = typer.Option(None, "--account-id", "-a", help="按账号 ID 筛选"),
     status: str = typer.Option(None, "--status", "-s", help="按状态筛选"),
     page: int = typer.Option(1, "--page", "-p", help="页码"),
@@ -134,10 +136,6 @@ def list_contents(
                 limit=page_size
             )
 
-            if not contents:
-                print_warning("未找到内容")
-                return
-
             # 格式化输出
             data = []
             for content in contents:
@@ -152,7 +150,18 @@ def list_contents(
                     "创建时间": format_datetime(content.created_at),
                 })
 
-            print_table(data, title=f"内容列表 (第 {page} 页，共 {len(contents)} 条)", show_header=True)
+            # 获取全局输出格式
+            output_format = get_global_format(ctx)
+
+            if not contents:
+                if output_format != "table":
+                    # JSON/CSV 格式时输出空列表
+                    print_table([], output_format=output_format)
+                else:
+                    print_warning("未找到内容")
+                return
+
+            print_table(data, title=f"内容列表 (第 {page} 页，共 {len(contents)} 条)", show_header=True, output_format=output_format)
 
     except Exception as e:
         handle_error(e)

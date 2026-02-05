@@ -25,6 +25,7 @@ from cli.utils import (
     format_bool,
     format_json,
     handle_error,
+    get_global_format,
 )
 from app.db.sql_db import get_session_local
 from app.models.account import Account, WritingStyle, PublishConfig
@@ -133,6 +134,7 @@ def format_account_info(account: Account, detailed: bool = False) -> dict:
 
 @app.command("list")
 def list_accounts(
+    ctx: typer.Context,
     customer_id: int = typer.Option(None, "--customer-id", "-c", help="按客户 ID 筛选"),
     platform_id: int = typer.Option(None, "--platform-id", "-p", help="按平台 ID 筛选"),
     status: str = typer.Option(None, "--status", "-s", help="按状态筛选 (active/inactive)"),
@@ -155,10 +157,6 @@ def list_accounts(
                 limit=page_size
             )
 
-            if not accounts:
-                print_warning("未找到账号")
-                return
-
             # 格式化输出
             data = []
             for account in accounts:
@@ -177,7 +175,18 @@ def list_accounts(
                     "创建时间": format_datetime(account.created_at),
                 })
 
-            print_table(data, title=f"账号列表 (第 {page} 页，共 {len(accounts)} 条)", show_header=True)
+            # 获取全局输出格式
+            output_format = get_global_format(ctx)
+
+            if not accounts:
+                if output_format != "table":
+                    # JSON/CSV 格式时输出空列表
+                    print_table([], output_format=output_format)
+                else:
+                    print_warning("未找到账号")
+                return
+
+            print_table(data, title=f"账号列表 (第 {page} 页，共 {len(accounts)} 条)", show_header=True, output_format=output_format)
 
     except Exception as e:
         handle_error(e)

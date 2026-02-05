@@ -23,6 +23,7 @@ from cli.utils import (
     print_table,
     confirm_action,
     format_datetime,
+    get_global_format,
     handle_error,
 )
 from app.db.sql_db import get_engine, get_session_local, init_db
@@ -234,7 +235,7 @@ def shell():
 
 
 @app.command()
-def info():
+def info(ctx: typer.Context):
     """显示数据库信息"""
     db_path = get_db_path()
 
@@ -258,29 +259,59 @@ def info():
         except Exception as e:
             print_warning(f"无法获取表信息: {e}")
 
-    # 显示信息
-    info_table = Table(title="数据库信息", show_header=True, header_style="bold magenta")
-    info_table.add_column("项目", style="cyan")
-    info_table.add_column("值", style="green")
+    # 获取全局输出格式
+    output_format = get_global_format(ctx)
 
-    info_table.add_row("数据库路径", db_path)
-    info_table.add_row("数据库状态", "✅ 存在" if db_exists else "❌ 不存在")
-    info_table.add_row("数据库大小", format_size(db_size))
-    info_table.add_row("数据库类型", "SQLite")
-    info_table.add_row("表数量", str(table_count))
+    # 准备数据
+    data = {
+        "数据库路径": db_path,
+        "数据库状态": "存在" if db_exists else "不存在",
+        "数据库大小": format_size(db_size),
+        "数据库类型": "SQLite",
+        "表数量": table_count,
+        "数据表": sorted(table_names) if table_names else [],
+    }
 
-    from rich.console import Console
-    console = Console()
-    console.print(info_table)
+    if output_format == "json":
+        import json
+        typer.echo(json.dumps(data, ensure_ascii=False, indent=2))
+    elif output_format == "csv":
+        # CSV 格式不适合输出嵌套结构，使用简化版本
+        flat_data = [
+            {"项目": "数据库路径", "值": db_path},
+            {"项目": "数据库状态", "值": "存在" if db_exists else "不存在"},
+            {"项目": "数据库大小", "值": format_size(db_size)},
+            {"项目": "数据库类型", "值": "SQLite"},
+            {"项目": "表数量", "值": str(table_count)},
+        ]
+        print_table(flat_data, output_format="csv")
+        if table_names:
+            for table in sorted(table_names):
+                typer.echo(f"  • {table}")
+    else:  # table
+        # 显示信息
+        info_table = Table(title="数据库信息", show_header=True, header_style="bold magenta")
+        info_table.add_column("项目", style="cyan")
+        info_table.add_column("值", style="green")
 
-    if table_names:
-        print_info("数据表:")
-        for table in sorted(table_names):
-            print(f"  • {table}")
+        info_table.add_row("数据库路径", db_path)
+        info_table.add_row("数据库状态", "✅ 存在" if db_exists else "❌ 不存在")
+        info_table.add_row("数据库大小", format_size(db_size))
+        info_table.add_row("数据库类型", "SQLite")
+        info_table.add_row("表数量", str(table_count))
+
+        from rich.console import Console
+        console = Console()
+        console.print(info_table)
+
+        if table_names:
+            print_info("数据表:")
+            for table in sorted(table_names):
+                print(f"  • {table}")
 
 
 @app.command()
-def stats():
+def stats(ctx: typer.Context):
     """数据库统计信息"""
     try:
         engine = get_engine()
@@ -309,15 +340,32 @@ def stats():
                         "记录数": f"查询失败: {e}",
                     })
 
-        # 显示统计信息
-        print_table(stats_data, title="数据库统计信息", show_header=True)
-
-        # 显示总计
+        # 计算总计
         total_records = sum(
             item["记录数"] if isinstance(item["记录数"], int) else 0
             for item in stats_data
         )
-        print_info(f"总计: {len(table_names)} 个表, {total_records} 条记录")
+
+        # 获取全局输出格式
+        output_format = get_global_format(ctx)
+
+        if output_format == "json":
+            import json
+            result = {
+                "表统计": stats_data,
+                "总计": {
+                    "表数量": len(table_names),
+                    "记录总数": total_records
+                }
+            }
+            typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
+        elif output_format == "csv":
+            print_table(stats_data, title=f"数据库统计信息 (总计: {len(table_names)} 个表, {total_records} 条记录)", show_header=True, output_format="csv")
+        else:  # table
+            # 显示统计信息
+            print_table(stats_data, title="数据库统计信息", show_header=True, output_format="table")
+            # 显示总计
+            print_info(f"总计: {len(table_names)} 个表, {total_records} 条记录")
 
     except Exception as e:
         handle_error(e)

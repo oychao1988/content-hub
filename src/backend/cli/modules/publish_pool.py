@@ -21,6 +21,7 @@ from cli.utils import (
     confirm_action,
     format_datetime,
     handle_error,
+    get_global_format,
 )
 from app.db.sql_db import get_session_local
 from app.models.publisher import PublishPool
@@ -113,6 +114,7 @@ def format_pool_entry_info(entry: PublishPool, detailed: bool = False) -> dict:
 
 @app.command("list")
 def list_pool(
+    ctx: typer.Context,
     account_id: int = typer.Option(None, "--account-id", "-a", help="按账号 ID 筛选"),
     status: str = typer.Option(None, "--status", "-s", help="按状态筛选 (pending/publishing/published/failed)"),
     limit: int = typer.Option(20, "--limit", "-n", help="显示数量")
@@ -127,10 +129,6 @@ def list_pool(
                 status=status,
                 limit=limit
             )
-
-            if not entries:
-                print_warning("发布池为空")
-                return
 
             # 格式化输出
             data = []
@@ -147,7 +145,18 @@ def list_pool(
                     "加入时间": format_datetime(entry.added_at),
                 })
 
-            print_table(data, title=f"发布池 (共 {len(entries)} 条)", show_header=True)
+            # 获取全局输出格式
+            output_format = get_global_format(ctx)
+
+            if not entries:
+                if output_format != "table":
+                    # JSON/CSV 格式时输出空列表
+                    print_table([], output_format=output_format)
+                else:
+                    print_warning("发布池为空")
+                return
+
+            print_table(data, title=f"发布池 (共 {len(entries)} 条)", show_header=True, output_format=output_format)
 
     except Exception as e:
         handle_error(e)

@@ -22,6 +22,7 @@ from cli.utils import (
     format_datetime,
     format_json,
     handle_error,
+    get_global_format,
 )
 from app.db.sql_db import get_session_local
 from app.models.account import WritingStyle

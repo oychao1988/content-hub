@@ -24,6 +24,7 @@ from cli.utils import (
     format_datetime,
     format_bool,
     handle_error,
+    get_global_format,
 )
 from app.db.sql_db import get_session_local
 from app.models.platform import Platform
@@ -102,6 +103,7 @@ def format_platform_info(platform: Platform, detailed: bool = False) -> dict:
 
 @app.command("list")
 def list_platforms(
+    ctx: typer.Context,
     status: str = typer.Option(None, "--status", "-s", help="按状态筛选 (active/inactive)"),
     page: int = typer.Option(1, "--page", help="页码"),
     page_size: int = typer.Option(20, "--page-size", "--size", help="每页数量")
@@ -120,10 +122,6 @@ def list_platforms(
                 limit=page_size
             )
 
-            if not platforms:
-                print_warning("未找到平台")
-                return
-
             # 格式化输出
             data = []
             for platform in platforms:
@@ -136,7 +134,18 @@ def list_platforms(
                     "创建时间": format_datetime(platform.created_at),
                 })
 
-            print_table(data, title=f"平台列表 (第 {page} 页，共 {len(platforms)} 条)", show_header=True)
+            # 获取全局输出格式
+            output_format = get_global_format(ctx)
+
+            if not platforms:
+                if output_format != "table":
+                    # JSON/CSV 格式时输出空列表
+                    print_table([], output_format=output_format)
+                else:
+                    print_warning("未找到平台")
+                return
+
+            print_table(data, title=f"平台列表 (第 {page} 页，共 {len(platforms)} 条)", show_header=True, output_format=output_format)
 
     except Exception as e:
         handle_error(e)

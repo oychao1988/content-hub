@@ -21,6 +21,7 @@ from cli.utils import (
     format_datetime,
     format_json,
     handle_error,
+    get_global_format,
 )
 from app.db.sql_db import get_session_local
 from app.models.audit_log import AuditLog
@@ -32,6 +33,7 @@ app = typer.Typer(help="审计日志")
 
 @app.command("list")
 def list_audit_logs(
+    ctx: typer.Context,
     event_type: str = typer.Option(None, "--event-type", "-e", help="事件类型"),
     user_id: int = typer.Option(None, "--user-id", "-u", help="用户 ID"),
     result: str = typer.Option(None, "--result", "-r", help="结果筛选 (success/failure)"),
@@ -71,10 +73,6 @@ def list_audit_logs(
             logs = result_data["logs"]
             total = result_data["total"]
 
-            if not logs:
-                print_warning("未找到审计日志")
-                return
-
             # 格式化输出
             data = []
             for log in logs:
@@ -106,7 +104,18 @@ def list_audit_logs(
                     "详情": details_str,
                 })
 
-            print_table(data, title=f"审计日志列表 (共 {total} 条)", show_header=True)
+            # 获取全局输出格式
+            output_format = get_global_format(ctx)
+
+            if not logs:
+                if output_format != "table":
+                    # JSON/CSV 格式时输出空列表
+                    print_table([], output_format=output_format)
+                else:
+                    print_warning("未找到审计日志")
+                return
+
+            print_table(data, title=f"审计日志列表 (共 {total} 条)", show_header=True, output_format=output_format)
 
     except ValueError as e:
         print_error(f"日期格式错误: {e}")

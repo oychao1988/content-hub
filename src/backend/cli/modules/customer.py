@@ -20,6 +20,7 @@ from cli.utils import (
     confirm_action,
     format_datetime,
     handle_error,
+    get_global_format,
 )
 from app.db.sql_db import get_session_local
 from app.models.customer import Customer
@@ -101,6 +102,7 @@ def format_customer_info(customer: Customer, detailed: bool = False) -> dict:
 
 @app.command("list")
 def list_customers(
+    ctx: typer.Context,
     status: str = typer.Option(None, "--status", "-s", help="按状态筛选 (active/inactive)"),
     page: int = typer.Option(1, "--page", help="页码"),
     page_size: int = typer.Option(20, "--page-size", "--size", help="每页数量")
@@ -119,10 +121,6 @@ def list_customers(
                 limit=page_size
             )
 
-            if not customers:
-                print_warning("未找到客户")
-                return
-
             # 格式化输出
             data = []
             for customer in customers:
@@ -135,7 +133,18 @@ def list_customers(
                     "创建时间": format_datetime(customer.created_at),
                 })
 
-            print_table(data, title=f"客户列表 (第 {page} 页，共 {len(customers)} 条)", show_header=True)
+            # 获取全局输出格式
+            output_format = get_global_format(ctx)
+
+            if not customers:
+                if output_format != "table":
+                    # JSON/CSV 格式时输出空列表
+                    print_table([], output_format=output_format)
+                else:
+                    print_warning("未找到客户")
+                return
+
+            print_table(data, title=f"客户列表 (第 {page} 页，共 {len(customers)} 条)", show_header=True, output_format=output_format)
 
     except Exception as e:
         handle_error(e)

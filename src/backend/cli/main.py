@@ -37,6 +37,7 @@ app.add_typer(system.app, name="system", help="系统管理")
 
 @app.callback()
 def main(
+    ctx: typer.Context,
     format: str = typer.Option("table", "--format", help="输出格式 (table/json/csv)"),
     debug: bool = typer.Option(False, "--debug", help="调试模式"),
     quiet: bool = typer.Option(False, "--quiet", help="静默模式（仅输出错误）"),
@@ -48,7 +49,14 @@ def main(
     使用 'contenthub <module> --help' 查看模块帮助
     使用 'contenthub <module> <command> --help' 查看命令帮助
     """
-    pass
+    # 将全局选项存储到 context 中，供子模块使用
+    ctx.ensure_object(dict)
+    ctx.obj.update({
+        "format": format,
+        "debug": debug,
+        "quiet": quiet,
+        "user": user,
+    })
 
 
 @app.command()
