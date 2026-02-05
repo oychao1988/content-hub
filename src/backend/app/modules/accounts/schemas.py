@@ -8,9 +8,9 @@ from datetime import datetime
 
 class AccountCreate(BaseModel):
     """创建账号请求模型"""
-    customer_id: int = Field(..., description="客户 ID")
-    platform_id: int = Field(..., description="平台 ID")
-    owner_id: Optional[int] = Field(None, description="账号所有者 ID")
+    customer_id: int = Field(..., description="客户 ID（必填）")
+    platform_id: int = Field(..., description="平台 ID（必填）")
+    owner_id: int = Field(..., description="账号所有者 ID（必填）")
     directory_name: str = Field(..., min_length=1, max_length=100, description="目录名称（唯一）")
     display_name: str = Field(..., min_length=1, max_length=200, description="显示名称")
     description: Optional[str] = Field(None, max_length=500, description="账号描述")

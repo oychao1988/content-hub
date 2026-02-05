@@ -186,13 +186,13 @@ def list_accounts(
 @app.command()
 def create(
     name: str = typer.Option(..., "--name", "-n", help="账号名称"),
-    customer_id: int = typer.Option(..., "--customer-id", "-c", help="客户 ID"),
-    platform_id: int = typer.Option(..., "--platform-id", "-p", help="平台 ID"),
-    owner_id: int = typer.Option(None, "--owner-id", "-o", help="账号所有者 ID（可选）"),
+    customer_id: int = typer.Option(..., "--customer-id", "-c", help="客户 ID（必填）"),
+    platform_id: int = typer.Option(..., "--platform-id", "-p", help="平台 ID（必填）"),
+    owner_id: int = typer.Option(..., "--owner-id", "-o", help="账号所有者 ID（必填）"),
     description: str = typer.Option(None, "--description", "-d", help="账号描述"),
     status: str = typer.Option("active", "--status", "-s", help="账号状态 (active/inactive)")
 ):
-    """创建账号"""
+    """创建账号（必须指定客户、平台和所有者）"""
     try:
         with get_session_local()() as db:
             # 验证客户和平台是否存在
@@ -210,26 +210,22 @@ def create(
                 print_error(f"平台不存在: ID {platform_id}")
                 raise typer.Exit(1)
 
-            # 验证所有者是否存在
-            if owner_id:
-                owner = db.query(User).filter(User.id == owner_id).first()
-                if not owner:
-                    print_error(f"用户不存在: ID {owner_id}")
-                    raise typer.Exit(1)
+            # 验证所有者是否存在（必填）
+            owner = db.query(User).filter(User.id == owner_id).first()
+            if not owner:
+                print_error(f"用户不存在: ID {owner_id}")
+                raise typer.Exit(1)
 
             # 准备账号数据
             account_data = {
                 "name": name,
                 "customer_id": customer_id,
                 "platform_id": platform_id,
+                "owner_id": owner_id,  # 必填
                 "directory_name": f"{platform.code}_{customer.id}_{name}".lower().replace(" ", "_"),
                 "description": description,
                 "is_active": status.lower() == "active"
             }
-
-            # 添加所有者 ID（方案 B）
-            if owner_id:
-                account_data["owner_id"] = owner_id
 
             # 创建账号
             print_info("正在创建账号...")
