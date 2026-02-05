@@ -162,12 +162,6 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="显示名称" prop="display_name">
-          <el-input v-model="formData.display_name" placeholder="请输入显示名称" />
-        </el-form-item>
-        <el-form-item label="目录名称" prop="directory_name">
-          <el-input v-model="formData.directory_name" placeholder="请输入目录名称（唯一标识）" />
-        </el-form-item>
         <el-form-item label="所属平台" prop="platform_id">
           <el-select
             v-model="formData.platform_id"
@@ -181,6 +175,26 @@
               :value="platform.id"
             />
           </el-select>
+        </el-form-item>
+        <el-form-item label="账号所有者" prop="owner_id">
+          <el-select
+            v-model="formData.owner_id"
+            placeholder="请选择账号所有者"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="user in users"
+              :key="user.id"
+              :label="user.full_name || user.username"
+              :value="user.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="显示名称" prop="display_name">
+          <el-input v-model="formData.display_name" placeholder="请输入显示名称" />
+        </el-form-item>
+        <el-form-item label="目录名称" prop="directory_name">
+          <el-input v-model="formData.directory_name" placeholder="请输入目录名称（唯一标识）" />
         </el-form-item>
         <el-form-item label="账号描述" prop="description">
           <el-input
@@ -243,6 +257,9 @@ const platforms = ref([])
 // 客户列表
 const customers = ref([])
 
+// 用户列表
+const users = ref([])
+
 // 对话框
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
@@ -252,9 +269,10 @@ const submitLoading = ref(false)
 
 const formData = reactive({
   customer_id: null,
+  platform_id: null,
+  owner_id: null,
   display_name: '',
   directory_name: '',
-  platform_id: null,
   description: '',
   niche: '',
   status: 'active'
@@ -264,6 +282,12 @@ const formRules = {
   customer_id: [
     { required: true, message: '请选择客户', trigger: 'change' }
   ],
+  platform_id: [
+    { required: true, message: '请选择平台', trigger: 'change' }
+  ],
+  owner_id: [
+    { required: true, message: '请选择账号所有者', trigger: 'change' }
+  ],
   display_name: [
     { required: true, message: '请输入显示名称', trigger: 'blur' },
     { minLength: 1, message: '显示名称不能为空', trigger: 'blur' }
@@ -271,9 +295,6 @@ const formRules = {
   directory_name: [
     { required: true, message: '请输入目录名称', trigger: 'blur' },
     { minLength: 1, message: '目录名称不能为空', trigger: 'blur' }
-  ],
-  platform_id: [
-    { required: true, message: '请选择平台', trigger: 'change' }
   ]
 }
 
@@ -319,6 +340,22 @@ const fetchCustomers = async () => {
     customers.value = data.items || []
   } catch (error) {
     console.error('获取客户列表失败:', error)
+  }
+}
+
+// 获取用户列表
+const fetchUsers = async () => {
+  try {
+    const response = await fetch('http://localhost:8010/api/v1/users/', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    const data = await response.json()
+    users.value = data.items || []
+  } catch (error) {
+    console.error('获取用户列表失败:', error)
   }
 }
 
@@ -478,6 +515,7 @@ onMounted(() => {
   fetchTableData()
   fetchPlatforms()
   fetchCustomers()
+  fetchUsers()
 })
 </script>
 
