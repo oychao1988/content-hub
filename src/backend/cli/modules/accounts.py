@@ -115,7 +115,7 @@ def format_account_info(account: Account, detailed: bool = False) -> dict:
         # 显示用户关联信息（方案 A 和 B）
         if account.owner_id:
             owner_name = account.owner.full_name if account.owner else f"ID:{account.owner_id}"
-            info["所有者"] = owner_name
+            info["运营者"] = owner_name
 
         if account.created_by:
             creator_name = account.creator.full_name if account.creator else f"ID:{account.created_by}"
@@ -170,7 +170,7 @@ def list_accounts(
                     "目录名": account.directory_name,
                     "客户": customer_name,
                     "平台": platform_name,
-                    "所有者": owner_name,
+                    "运营者": owner_name,
                     "状态": "激活" if account.is_active else "停用",
                     "创建时间": format_datetime(account.created_at),
                 })
@@ -195,9 +195,9 @@ def list_accounts(
 @app.command()
 def create(
     name: str = typer.Option(..., "--name", "-n", help="账号名称"),
-    customer_id: int = typer.Option(..., "--customer-id", "-c", help="客户 ID（必填）"),
+    customer_id: int = typer.Option(..., "--customer-id", "-c", help="客户 ID（账号归属方，必填）"),
     platform_id: int = typer.Option(..., "--platform-id", "-p", help="平台 ID（必填）"),
-    owner_id: int = typer.Option(..., "--owner-id", "-o", help="账号所有者 ID（必填）"),
+    owner_id: int = typer.Option(..., "--owner-id", "-o", help="运营负责人 ID（必填）"),
     description: str = typer.Option(None, "--description", "-d", help="账号描述"),
     status: str = typer.Option("active", "--status", "-s", help="账号状态 (active/inactive)"),
     # 写作风格配置（三种方式，优先级：writing-style-id > 自定义参数 > 默认预设）
@@ -306,7 +306,7 @@ def create(
 def update(
     account_id: int = typer.Argument(..., help="账号 ID"),
     name: str = typer.Option(None, "--name", "-n", help="账号名称"),
-    owner_id: int = typer.Option(None, "--owner-id", "-o", help="账号所有者 ID"),
+    owner_id: int = typer.Option(None, "--owner-id", "-o", help="运营负责人 ID"),
     description: str = typer.Option(None, "--description", "-d", help="账号描述"),
     status: str = typer.Option(None, "--status", "-s", help="账号状态 (active/inactive)"),
     writing_style_id: int = typer.Option(None, "--writing-style-id", help="写作风格 ID（切换关联的风格）")

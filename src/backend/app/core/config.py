@@ -50,6 +50,7 @@ class Settings(BaseSettings):
 
     # Content-Creator CLI 配置
     CREATOR_CLI_PATH: str = ""
+    CREATOR_PROJECT_PATH: Optional[str] = None  # content-creator 项目路径
     CREATOR_WORK_DIR: str = os.path.join(data_dir, "creator-work")
 
     # 默认写作风格配置

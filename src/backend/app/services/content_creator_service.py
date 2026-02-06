@@ -29,6 +29,90 @@ class ContentCreatorService:
     # 最大重试次数
     MAX_RETRIES = 2
 
+    # ContentHub 图片目录（目标路径）
+    CONTENTHUB_IMAGES_DIR = "data/images"
+
+    @staticmethod
+    def _get_creator_project_path() -> str:
+        """
+        获取 content-creator 项目路径
+
+        :return: content-creator 项目路径
+        """
+        # 优先从配置读取
+        if settings.CREATOR_PROJECT_PATH:
+            return settings.CREATOR_PROJECT_PATH
+
+        # 尝试从环境变量读取
+        creator_path = os.environ.get('CREATOR_PROJECT_PATH')
+        if creator_path:
+            return creator_path
+
+        # 尝试从包装脚本中推断路径
+        if os.path.exists(settings.CREATOR_CLI_PATH):
+            try:
+                with open(settings.CREATOR_CLI_PATH, 'r') as f:
+                    content = f.read()
+                    # 从包装脚本中提取 cd 命令的路径
+                    import re
+                    cd_match = re.search(r'cd\s+([^\s]+)', content)
+                    if cd_match:
+                        log.info(f"Inferred CREATOR_PROJECT_PATH from CLI wrapper script: {cd_match.group(1)}")
+                        return cd_match.group(1)
+            except Exception as e:
+                log.warning(f"Failed to read CLI wrapper script: {str(e)}")
+
+        # 未配置，使用相对路径
+        log.warning("CREATOR_PROJECT_PATH not configured, image copying may not work properly")
+        return "."
+
+    @staticmethod
+    def _copy_images_to_contenthub(image_paths: list) -> list:
+        """
+        将图片从 content-creator 项目复制到 ContentHub 项目
+
+        :param image_paths: content-creator 返回的图片路径列表（相对路径）
+        :return: ContentHub 中的图片路径列表
+        """
+        import shutil
+        from pathlib import Path
+
+        converted_paths = []
+
+        # 获取 content-creator 项目路径
+        creator_project_path = ContentCreatorService._get_creator_project_path()
+        log.info(f"Using creator project path: {creator_project_path}")
+
+        # 确保 ContentHub 图片目录存在
+        contenthub_images_dir = Path(ContentCreatorService.CONTENTHUB_IMAGES_DIR)
+        contenthub_images_dir.mkdir(parents=True, exist_ok=True)
+
+        for img_path in image_paths:
+            # 构造源图片的绝对路径（content-creator 项目）
+            source_path = Path(creator_project_path) / img_path
+
+            # 如果源文件存在，复制到 ContentHub
+            if source_path.exists():
+                filename = source_path.name
+                dest_path = contenthub_images_dir / filename
+
+                try:
+                    # 复制文件
+                    shutil.copy2(source_path, dest_path)
+                    # 返回 ContentHub 中的相对路径
+                    converted_paths.append(f"{ContentCreatorService.CONTENTHUB_IMAGES_DIR}/{filename}")
+                    log.info(f"Copied image: {filename}")
+                except Exception as e:
+                    log.warning(f"Failed to copy image {filename}: {str(e)}")
+                    # 保留原路径（即使复制失败）
+                    converted_paths.append(img_path)
+            else:
+                log.warning(f"Source image not found: {source_path}")
+                # 保留原路径
+                converted_paths.append(img_path)
+
+        return converted_paths
+
     @staticmethod
     def _parse_cli_output(stdout: str) -> Dict[str, Any]:
         """
@@ -92,8 +176,12 @@ class ContentCreatorService:
                 images_text = images_section.group(1).strip()
                 # 提取所有图片路径
                 image_paths = re.findall(r'(data/images/[^\s]+)', images_text)
-                result["images"] = image_paths
-                log.info(f"Extracted {len(image_paths)} images")
+
+                # 复制图片到 ContentHub 目录并转换路径
+                converted_paths = ContentCreatorService._copy_images_to_contenthub(image_paths)
+
+                result["images"] = converted_paths
+                log.info(f"Extracted and copied {len(converted_paths)} images")
 
             # 提取文本质检信息
             quality_match = re.search(r'🔍 文本质检:.*?状态:\s*(\S+).*?评分:\s*([\d.]+)', stdout, re.DOTALL)

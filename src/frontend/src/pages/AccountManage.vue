@@ -139,7 +139,7 @@
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
-      width="600px"
+      width="700px"
       @close="handleDialogClose"
     >
       <el-form
@@ -150,8 +150,9 @@
       >
         <el-form-item label="所属客户" prop="customer_id">
           <el-select
+            v-if="dialogMode !== 'view'"
             v-model="formData.customer_id"
-            placeholder="请选择客户"
+            placeholder="请选择客户（账号归属方）"
             style="width: 100%"
           >
             <el-option
@@ -161,11 +162,13 @@
               :value="customer.id"
             />
           </el-select>
+          <span v-else>{{ getCustomerName(formData.customer_id) }}</span>
         </el-form-item>
         <el-form-item label="所属平台" prop="platform_id">
           <el-select
+            v-if="dialogMode !== 'view'"
             v-model="formData.platform_id"
-            placeholder="请选择平台"
+            placeholder="请选择发布平台"
             style="width: 100%"
           >
             <el-option
@@ -175,11 +178,13 @@
               :value="platform.id"
             />
           </el-select>
+          <span v-else>{{ getPlatformName(formData.platform_id) }}</span>
         </el-form-item>
-        <el-form-item label="账号所有者" prop="owner_id">
+        <el-form-item label="运营负责人" prop="owner_id">
           <el-select
+            v-if="dialogMode !== 'view'"
             v-model="formData.owner_id"
-            placeholder="请选择账号所有者"
+            placeholder="请选择运营负责人"
             style="width: 100%"
           >
             <el-option
@@ -189,12 +194,13 @@
               :value="user.id"
             />
           </el-select>
+          <span v-else>{{ getUserName(formData.owner_id) }}</span>
         </el-form-item>
         <el-form-item label="显示名称" prop="display_name">
-          <el-input v-model="formData.display_name" placeholder="请输入显示名称" />
+          <el-input v-model="formData.display_name" placeholder="请输入显示名称" :disabled="dialogMode === 'view'" />
         </el-form-item>
         <el-form-item label="目录名称" prop="directory_name">
-          <el-input v-model="formData.directory_name" placeholder="请输入目录名称（唯一标识）" />
+          <el-input v-model="formData.directory_name" placeholder="请输入目录名称（唯一标识）" :disabled="dialogMode === 'view'" />
         </el-form-item>
         <el-form-item label="账号描述" prop="description">
           <el-input
@@ -202,21 +208,62 @@
             type="textarea"
             :rows="3"
             placeholder="请输入账号描述"
+            :disabled="dialogMode === 'view'"
           />
         </el-form-item>
         <el-form-item label="垂直领域" prop="niche">
-          <el-input v-model="formData.niche" placeholder="请输入垂直领域（可选）" />
+          <el-input v-model="formData.niche" placeholder="请输入垂直领域（可选）" :disabled="dialogMode === 'view'" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
-          <el-radio-group v-model="formData.status">
+          <el-radio-group v-model="formData.status" :disabled="dialogMode === 'view'">
             <el-radio label="active">启用</el-radio>
             <el-radio label="inactive">禁用</el-radio>
           </el-radio-group>
         </el-form-item>
+
+        <!-- 关联信息显示 -->
+        <el-divider content-position="left">关联配置</el-divider>
+
+        <!-- 写作风格 -->
+        <el-form-item label="写作风格">
+          <div v-if="formData.writing_style" class="config-display">
+            <el-tag type="success" size="small">{{ formData.writing_style.name }}</el-tag>
+            <div class="config-details">
+              <span>语气：{{ formData.writing_style.tone }}</span>
+              <span>字数：{{ formData.writing_style.min_words }}-{{ formData.writing_style.max_words }}字</span>
+              <span v-if="formData.writing_style.persona">人设：{{ formData.writing_style.persona }}</span>
+              <span v-if="formData.writing_style.emoji_usage">表情：{{ formData.writing_style.emoji_usage }}</span>
+            </div>
+          </div>
+          <el-empty v-else description="未配置写作风格" :image-size="60" />
+        </el-form-item>
+
+        <!-- 发布配置 -->
+        <el-form-item label="发布配置">
+          <div v-if="formData.publish_config" class="config-display">
+            <div class="config-details">
+              <span v-if="formData.publish_config.auto_publish !== null">
+                自动发布：{{ formData.publish_config.auto_publish ? '启用' : '禁用' }}
+              </span>
+              <span v-if="formData.publish_config.review_mode">
+                审核模式：{{ formData.publish_config.review_mode === 'auto' ? '自动' : '手动' }}
+              </span>
+              <span v-if="formData.publish_config.theme_id">
+                主题ID：{{ formData.publish_config.theme_id }}
+              </span>
+            </div>
+          </div>
+          <el-empty v-else description="未配置发布设置" :image-size="60" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+        <el-button
+          v-if="dialogMode !== 'view'"
+          type="primary"
+          :loading="submitLoading"
+          @click="handleSubmit"
+        >
           确定
         </el-button>
       </template>
@@ -227,7 +274,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { PageHeader, DataTable, SearchForm } from '../components/common'
-import { accounts as accountsApi, platforms as platformsApi } from '../api'
+import { accounts as accountsApi, platforms as platformsApi, customers as customersApi, users as usersApi } from '../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus,
@@ -280,13 +327,13 @@ const formData = reactive({
 
 const formRules = {
   customer_id: [
-    { required: true, message: '请选择客户', trigger: 'change' }
+    { required: true, message: '请选择客户（账号归属方）', trigger: 'change' }
   ],
   platform_id: [
-    { required: true, message: '请选择平台', trigger: 'change' }
+    { required: true, message: '请选择发布平台', trigger: 'change' }
   ],
   owner_id: [
-    { required: true, message: '请选择账号所有者', trigger: 'change' }
+    { required: true, message: '请选择运营负责人', trigger: 'change' }
   ],
   display_name: [
     { required: true, message: '请输入显示名称', trigger: 'blur' },
@@ -330,14 +377,8 @@ const fetchPlatforms = async () => {
 // 获取客户列表
 const fetchCustomers = async () => {
   try {
-    const response = await fetch('http://localhost:8010/api/v1/customers/', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    const data = await response.json()
-    customers.value = data.items || []
+    const response = await customersApi.getCustomers({ page_size: 100 })
+    customers.value = response.items || []
   } catch (error) {
     console.error('获取客户列表失败:', error)
   }
@@ -346,14 +387,8 @@ const fetchCustomers = async () => {
 // 获取用户列表
 const fetchUsers = async () => {
   try {
-    const response = await fetch('http://localhost:8010/api/v1/users/', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    const data = await response.json()
-    users.value = data.items || []
+    const response = await usersApi.getUsers({ page_size: 100 })
+    users.value = response.items || []
   } catch (error) {
     console.error('获取用户列表失败:', error)
   }
@@ -511,6 +546,27 @@ const handleDialogClose = () => {
   })
 }
 
+// 获取客户名称
+const getCustomerName = (customerId) => {
+  if (!customerId) return '未设置'
+  const customer = customers.value.find(c => c.id === customerId)
+  return customer ? customer.name : `ID: ${customerId}`
+}
+
+// 获取平台名称
+const getPlatformName = (platformId) => {
+  if (!platformId) return '未设置'
+  const platform = platforms.value.find(p => p.id === platformId)
+  return platform ? platform.name : `ID: ${platformId}`
+}
+
+// 获取用户名称
+const getUserName = (userId) => {
+  if (!userId) return '未设置'
+  const user = users.value.find(u => u.id === userId)
+  return user ? (user.full_name || user.username) : `ID: ${userId}`
+}
+
 onMounted(() => {
   fetchTableData()
   fetchPlatforms()
@@ -533,5 +589,24 @@ onMounted(() => {
 
 .batch-actions :deep(.el-alert) {
   padding: 12px 20px;
+}
+
+.config-display {
+  width: 100%;
+}
+
+.config-details {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #606266;
+}
+
+.config-details span {
+  padding: 4px 8px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
 }
 </style>

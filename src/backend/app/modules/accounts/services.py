@@ -2,7 +2,7 @@
 账号管理服务
 负责账号的创建、查询、更新、删除等操作
 """
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.db.database import get_db
 from app.models.account import Account
@@ -18,8 +18,14 @@ class AccountService:
     @staticmethod
     @cache_query(ttl=300, key_prefix="accounts")
     def get_account_list(db: Session) -> List[dict]:
-        """获取账号列表（兼容前端字段）"""
-        accounts = db.query(Account).order_by(Account.created_at.desc()).all()
+        """获取账号列表（兼容前端字段，包含关联信息）"""
+        accounts = db.query(Account).options(
+            joinedload(Account.platform),
+            joinedload(Account.customer),
+            joinedload(Account.writing_style),
+            joinedload(Account.publish_config).joinedload(Account.publish_config.property.mapper.class_.theme)
+        ).order_by(Account.created_at.desc()).all()
+
         result = []
         for account in accounts:
             account_dict = {
@@ -27,12 +33,40 @@ class AccountService:
                 "name": account.name,
                 "directory_name": account.directory_name,
                 "description": account.description,
+                # 基础字段
+                "customer_id": account.customer_id,
+                "platform_id": account.platform_id,
+                "owner_id": account.owner_id,
+                "created_by": account.created_by,
+                "updated_by": account.updated_by,
                 # 兼容前端字段
                 "platform_name": account.platform.name if account.platform else None,
                 "account_id": account.directory_name,
                 "status": "active" if account.is_active else "inactive",
                 "created_at": account.created_at,
-                "updated_at": account.updated_at
+                "updated_at": account.updated_at,
+                # 关联信息 - 写作风格
+                "writing_style": {
+                    "id": account.writing_style.id,
+                    "name": account.writing_style.name,
+                    "tone": account.writing_style.tone,
+                    "min_words": account.writing_style.min_words,
+                    "max_words": account.writing_style.max_words,
+                    "persona": account.writing_style.persona,
+                    "emoji_usage": account.writing_style.emoji_usage
+                } if account.writing_style else None,
+                # 关联信息 - 发布配置
+                "publish_config": {
+                    "id": account.publish_config.id,
+                    "theme_id": account.publish_config.theme_id,
+                    "auto_publish": account.publish_config.auto_publish,
+                    "review_mode": account.publish_config.review_mode
+                } if account.publish_config else None,
+                # 关联信息 - 客户和所有者
+                "customer": {
+                    "id": account.customer.id,
+                    "name": account.customer.name
+                } if account.customer else None
             }
             result.append(account_dict)
         return result
@@ -40,8 +74,16 @@ class AccountService:
     @staticmethod
     @cache_query(ttl=300, key_prefix="account_by_id")
     def get_account_detail(db: Session, account_id: int) -> Optional[Account]:
-        """获取账号详情（含所有配置）"""
-        return db.query(Account).filter(Account.id == account_id).first()
+        """获取账号详情（含所有配置，使用 eager loading）"""
+        return db.query(Account).options(
+            joinedload(Account.platform),
+            joinedload(Account.customer),
+            joinedload(Account.writing_style),
+            joinedload(Account.publish_config),
+            joinedload(Account.configs),
+            joinedload(Account.content_sections),
+            joinedload(Account.data_sources)
+        ).filter(Account.id == account_id).first()
 
     @staticmethod
     def create_account(db: Session, account_data: dict, current_user_id: int = None) -> Account:
