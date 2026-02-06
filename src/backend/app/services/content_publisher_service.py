@@ -5,7 +5,10 @@
 import requests
 import json
 import time
-from typing import Optional, Dict, Any
+import re
+import os
+from typing import Optional, Dict, Any, List, Tuple
+from pathlib import Path
 from requests.exceptions import RequestException, Timeout, HTTPError as RequestsHTTPError
 from app.core.config import settings
 from app.core.exceptions import (
@@ -243,13 +246,53 @@ class ContentPublisherService:
             }
 
     @staticmethod
-    def publish_to_wechat(content_id: int, account_id: int, publish_to_draft: bool = True) -> dict:
+    def _extract_and_convert_images(content_text: str, base_dir: str = None) -> Tuple[str, List[str], str]:
+        """
+        从 markdown 中提取图片并转换为 uploads: 格式
+
+        :param content_text: markdown 内容
+        :param base_dir: 基础目录，用于解析相对路径
+        :return: (处理后的 markdown, 图片文件路径列表, 封面图 uploads: 格式)
+        """
+        image_paths = []
+        cover_upload = ""
+
+        # 处理正文图片
+        def replace_image(match):
+            alt = match.group(1)
+            img_path = match.group(2)
+
+            # 跳过网络图片
+            if img_path.startswith('http://') or img_path.startswith('https://'):
+                return match.group(0)
+
+            # 转换相对路径为绝对路径
+            abs_path = img_path if os.path.isabs(img_path) else os.path.join(base_dir, img_path) if base_dir else img_path
+
+            # 检查文件是否存在
+            if os.path.exists(abs_path):
+                image_paths.append(abs_path)
+                filename = os.path.basename(abs_path)
+                return f"![{alt}](uploads:{filename})"
+
+            # 文件不存在，保留原文或移除
+            log.warning(f"图片文件不存在: {abs_path}")
+            return f"![{alt}]"
+
+        # 替换正文中的图片引用
+        processed_content = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', replace_image, content_text)
+
+        return processed_content, image_paths, cover_upload
+
+    @staticmethod
+    def publish_to_wechat(content_id: int, account_id: int, publish_to_draft: bool = True, db=None) -> dict:
         """
         发布到微信公众号
 
         :param content_id: 内容 ID
         :param account_id: 账号 ID
         :param publish_to_draft: 是否发布到草稿箱
+        :param db: 数据库会话
         :return: 发布结果
         """
         if not settings.PUBLISHER_API_URL:
@@ -261,18 +304,230 @@ class ContentPublisherService:
         if not settings.PUBLISHER_API_KEY:
             raise PublisherUnauthorizedException()
 
+        # 从数据库获取内容和账号信息
+        if not db:
+            from app.db.database import get_db
+            db = next(get_db())
+
+        from app.models.content import Content
+        from app.models.account import Account
+
+        content = db.query(Content).filter(Content.id == content_id).first()
+        if not content:
+            raise PublisherException(
+                message=f"内容不存在 (ID: {content_id})",
+                code="CONTENT_NOT_FOUND"
+            )
+
+        account = db.query(Account).filter(Account.id == account_id).first()
+        if not account:
+            raise PublisherException(
+                message=f"账号不存在 (ID: {account_id})",
+                code="ACCOUNT_NOT_FOUND"
+            )
+
+        # 提取图片并转换路径
+        content_text = content.content or ""
+
+        # 处理封面图
+        cover_upload = ""
+        cover_file_path = None
+
+        if content.cover_image:
+            cover_path = content.cover_image
+
+            # 检查是否是本地路径
+            if not cover_path.startswith('http://') and not cover_path.startswith('https://'):
+                # 尝试解析路径
+                abs_cover_path = cover_path if os.path.isabs(cover_path) else cover_path
+
+                if os.path.exists(abs_cover_path):
+                    cover_file_path = abs_cover_path
+                    cover_filename = os.path.basename(abs_cover_path)
+                    cover_upload = f"uploads:{cover_filename}"
+                    log.info(f"封面图: {cover_filename}")
+                else:
+                    log.warning(f"封面图文件不存在: {abs_cover_path}")
+            else:
+                # 网络封面图，直接使用
+                cover_upload = cover_path
+
+        # 处理正文图片（从 content.images JSON 字段或 content.content 中提取）
+        image_paths = []
+
+        # 方式1: 从 images 字段获取
+        if content.images:
+            for img in content.images:
+                if isinstance(img, str):
+                    img_path = img
+                    if not img_path.startswith('http://') and not img_path.startswith('https://'):
+                        abs_path = img_path if os.path.isabs(img_path) else img_path
+                        if os.path.exists(abs_path):
+                            image_paths.append(abs_path)
+
+        # 方式2: 从 content content 中提取图片引用
+        processed_content, extracted_images, _ = ContentPublisherService._extract_and_convert_images(
+            content_text,
+            None
+        )
+
+        # 合并图片列表（去重）
+        for img_path in extracted_images:
+            if img_path not in image_paths:
+                image_paths.append(img_path)
+
+        # 添加封面图到图片列表
+        if cover_file_path and cover_file_path not in image_paths:
+            image_paths.insert(0, cover_file_path)  # 封面图放在最前面
+
+        log.info(f"发现 {len(image_paths)} 个本地图片文件")
+
+        # 构造 markdown（包含 YAML front matter）
+        front_matter = f"---\ntitle: {content.title}\n"
+        if cover_upload:
+            front_matter += f"cover: {cover_upload}\n"
+        front_matter += "---\n\n"
+
+        markdown = front_matter + processed_content
+
+        # 构造请求
+        # 如果没有本地图片，使用 JSON 格式
+        if not image_paths:
+            log.info("无本地图片，使用 JSON 格式")
+
+            data = {
+                "markdown": markdown,
+                "title": content.title,
+                "theme": "default",
+                "highlightTheme": "solarized-light",
+                "useMacStyle": True,
+                "addFootnote": True,
+                "account": {
+                    "appId": account.wechat_app_id,
+                    "appSecret": account.wechat_app_secret
+                }
+            }
+
+            if cover_upload:
+                data["cover"] = cover_upload
+
+            return ContentPublisherService._make_request(
+                "POST",
+                "/api/publish",
+                json=data,
+                headers={"Content-Type": "application/json"}
+            )
+
+        # 有本地图片，使用 multipart/form-data 格式
+        log.info(f"使用 multipart/form-data 格式，上传 {len(image_paths)} 个图片文件")
+
+        # 准备 multipart/form-data
+        files = []  # 使用列表格式支持多个文件
         data = {
-            "content_id": content_id,
-            "account_id": account_id,
-            "publish_to_draft": publish_to_draft
+            "markdown": markdown,
+            "title": content.title,
+            "theme": "default",
+            "highlightTheme": "solarized-light",
+            "useMacStyle": "true",
+            "addFootnote": "true",
+            "account": json.dumps({
+                "appId": account.wechat_app_id,
+                "appSecret": account.wechat_app_secret
+            })
         }
 
-        return ContentPublisherService._make_request(
-            "POST",
-            "/api/publish",
-            json=data,
-            headers={"Content-Type": "application/json"}
-        )
+        if cover_upload:
+            data["cover"] = cover_upload
+
+        # 添加图片文件
+        for idx, img_path in enumerate(image_paths):
+            if not os.path.exists(img_path):
+                log.warning(f"跳过不存在的文件: {img_path}")
+                continue
+
+            filename = os.path.basename(img_path)
+
+            # 确定 MIME 类型
+            ext = os.path.splitext(filename)[1].lower()
+            mime_types = {
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.png': 'image/png',
+                '.gif': 'image/gif',
+                '.webp': 'image/webp',
+            }
+            mime_type = mime_types.get(ext, 'image/jpeg')
+
+            try:
+                with open(img_path, 'rb') as f:
+                    file_content = f.read()
+                    files.append(('files', (filename, file_content, mime_type)))
+                    log.info(f"  + {filename} ({mime_type})")
+            except Exception as e:
+                log.error(f"读取图片失败 {filename}: {e}")
+                continue
+
+        url = f"{settings.PUBLISHER_API_URL}/api/publish"
+        headers = {
+            'Authorization': f"Bearer {settings.PUBLISHER_API_KEY}"
+        }
+
+        try:
+            log.info(f"Publisher API request: POST {url}")
+            log.info(f"  - 标题: {content.title}")
+            log.info(f"  - 图片数量: {len(image_paths)}")
+            log.info(f"  - 封面: {cover_upload or '(无)'}")
+
+            response = requests.post(
+                url,
+                data=data,
+                files=files,
+                headers=headers,
+                timeout=ContentPublisherService.UPLOAD_TIMEOUT
+            )
+
+            response.raise_for_status()
+
+            # 解析 JSON 响应
+            try:
+                result = response.json()
+
+                # 检查业务状态
+                if not result.get('success'):
+                    error_msg = result.get('message', '发布失败')
+                    log.error(f"Publisher API 业务错误: {error_msg}")
+                    raise PublisherException(
+                        message=error_msg,
+                        details={"response": result},
+                        code="PUBLISHER_BUSINESS_ERROR"
+                    )
+
+                # 提取 media_id（适配两种格式）
+                media_id = None
+                if 'data' in result:
+                    media_id = result['data'].get('mediaId') or result['data'].get('media_id')
+                else:
+                    media_id = result.get('mediaId') or result.get('media_id')
+
+                log.info(f"发布成功: media_id={media_id}")
+                return result
+            except json.JSONDecodeError as e:
+                log.error(f"Failed to parse Publisher API response: {e}")
+                raise PublisherException(
+                    message="Publisher API 返回了无效的 JSON 响应",
+                    details={
+                        "status_code": response.status_code,
+                        "response_preview": response.text[:200]
+                    },
+                    code="PUBLISHER_INVALID_RESPONSE"
+                )
+
+        except Exception as e:
+            log.exception(f"Publisher API request failed: {str(e)}")
+            raise PublisherException(
+                message=f"调用 Publisher API 时发生错误: {str(e)}",
+                details={"error_type": type(e).__name__}
+            )
 
     @staticmethod
     def get_publish_status(media_id: str) -> dict:
