@@ -43,7 +43,11 @@ class AccountService:
 
     @staticmethod
     def create_account(db: Session, account_data: dict, current_user_id: int = None) -> Account:
-        """创建账号"""
+        """创建账号（支持级联创建配置）"""
+        # 提取嵌套配置
+        writing_style_data = account_data.pop('writing_style', None)
+        theme_id = account_data.pop('theme_id', None)
+
         # 字段映射：display_name -> name
         if 'display_name' in account_data:
             account_data['name'] = account_data.pop('display_name')
@@ -61,8 +65,29 @@ class AccountService:
             account_data['created_by'] = current_user_id
             account_data['updated_by'] = current_user_id
 
+        # 创建账号
         account = Account(**account_data)
         db.add(account)
+        db.flush()  # 获取 account.id，但不提交事务
+
+        # 级联创建写作风格
+        if writing_style_data:
+            from app.models.account import WritingStyle
+            writing_style_data['account_id'] = account.id
+            writing_style_data.setdefault('name', f"账号{account.id}风格")
+            writing_style_data.setdefault('code', f"account_{account.id}_style")
+            writing_style = WritingStyle(**writing_style_data)
+            db.add(writing_style)
+
+        # 级联创建发布配置
+        if theme_id:
+            from app.models.account import PublishConfig
+            publish_config = PublishConfig(
+                account_id=account.id,
+                theme_id=theme_id
+            )
+            db.add(publish_config)
+
         db.commit()
         db.refresh(account)
 

@@ -6,6 +6,28 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 
+class WritingStyleCreate(BaseModel):
+    """写作风格创建模型"""
+    tone: str = Field("专业", max_length=50, description="语气：专业/轻松/幽默/严肃")
+    persona: Optional[str] = Field(None, max_length=500, description="人设")
+    min_words: int = Field(800, ge=100, le=10000, description="最小字数")
+    max_words: int = Field(1500, ge=100, le=10000, description="最大字数")
+    emoji_usage: str = Field("适度", max_length=20, description="表情使用：不使用/适度/频繁")
+    forbidden_words: Optional[List[str]] = Field(None, description="禁用词列表")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "tone": "专业",
+                "persona": "科技博主",
+                "min_words": 1000,
+                "max_words": 2000,
+                "emoji_usage": "适度",
+                "forbidden_words": ["非常好", "超级"]
+            }
+        }
+
+
 class AccountCreate(BaseModel):
     """创建账号请求模型"""
     customer_id: int = Field(..., description="客户 ID（必填）")
@@ -15,6 +37,9 @@ class AccountCreate(BaseModel):
     display_name: str = Field(..., min_length=1, max_length=200, description="显示名称")
     description: Optional[str] = Field(None, max_length=500, description="账号描述")
     niche: Optional[str] = Field(None, max_length=100, description="垂直领域")
+    # 新增：支持创建时指定写作风格和内容主题
+    writing_style: Optional[WritingStyleCreate] = Field(None, description="写作风格配置")
+    theme_id: Optional[int] = Field(None, description="内容主题 ID")
 
     class Config:
         schema_extra = {
@@ -25,7 +50,14 @@ class AccountCreate(BaseModel):
                 "directory_name": "tech_blog",
                 "display_name": "技术博客",
                 "description": "分享技术文章和教程",
-                "niche": "technology"
+                "niche": "technology",
+                "writing_style": {
+                    "tone": "专业",
+                    "persona": "技术专家",
+                    "min_words": 1000,
+                    "max_words": 2000
+                },
+                "theme_id": 1
             }
         }
 

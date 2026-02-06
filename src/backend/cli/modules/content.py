@@ -260,6 +260,21 @@ def generate(
             print_info(f"选题: {topic}")
             print_info(f"关键词: {keywords or '无'}")
 
+            # 显示账号配置
+            if account.writing_style:
+                print_info(f"写作风格: {account.writing_style.tone}, {account.writing_style.min_words}-{account.writing_style.max_words}字")
+            if account.publish_config and account.publish_config.theme_id:
+                from app.models.theme import ContentTheme
+                theme = db.query(ContentTheme).filter(
+                    ContentTheme.id == account.publish_config.theme_id
+                ).first()
+                if theme:
+                    print_info(f"内容主题: {theme.name}")
+
+            # 说明 CLI 参数优先级
+            if tone != "友好专业" or requirements:
+                print_info("提示: CLI 参数将覆盖账号配置")
+
             # 构建创作要求
             if not requirements:
                 requirements = f"写一篇关于'{topic}'的{category}类文章，要求内容详实、结构清晰"
@@ -294,7 +309,9 @@ def generate(
                     topic=topic,
                     requirements=requirements,
                     target_audience=category if category != "默认" else "普通读者",
-                    tone=tone
+                    tone=tone,
+                    account_id=account_id,
+                    db=db
                 )
 
                 # 从结果中提取内容

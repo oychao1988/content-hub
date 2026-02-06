@@ -218,25 +218,82 @@ class ContentCreatorService:
         target_audience: str = "普通读者",
         tone: str = "友好专业",
         account_id: Optional[int] = None,
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        db: Optional['Session'] = None
     ) -> dict:
         """
-        调用 content-creator CLI 生成内容
+        调用 content-creator CLI 生成内容（支持读取账号配置）
 
         :param topic: 文章主题
         :param requirements: 创作要求（字数、结构等）
         :param target_audience: 目标受众
-        :param tone: 语气风格
-        :param account_id: 账号 ID（已废弃，保留兼容性）
+        :param tone: 语气风格（CLI 参数优先级高于账号配置）
+        :param account_id: 账号 ID（用于读取账号配置）
         :param category: 内容分类（已废弃，保留兼容性）
+        :param db: 数据库会话（用于读取账号配置）
         :return: 生成的内容信息
         """
         if not settings.CREATOR_CLI_PATH:
             raise CreatorCLINotFoundException("CREATOR_CLI_PATH 未配置")
 
+        # 读取账号配置
+        account_config = {}
+        if account_id and db:
+            from app.models.account import Account
+            from app.models.theme import ContentTheme
+
+            account = db.query(Account).filter(Account.id == account_id).first()
+            if account:
+                # 读取写作风格配置
+                if account.writing_style:
+                    ws = account.writing_style
+                    # 仅当 tone 使用默认值时，才使用账号配置的 tone
+                    if tone == "友好专业":  # 使用默认值表示未指定
+                        tone = ws.tone or tone
+
+                    style_prompt = f"\n## 写作风格要求\n"
+                    style_prompt += f"- 语气：{ws.tone}\n"
+                    if ws.persona:
+                        style_prompt += f"- 人设：{ws.persona}\n"
+                    style_prompt += f"- 字数：{ws.min_words}-{ws.max_words}字\n"
+                    if ws.emoji_usage:
+                        style_prompt += f"- 表情使用：{ws.emoji_usage}\n"
+                    if ws.forbidden_words:
+                        style_prompt += f"- 禁用词：{', '.join(ws.forbidden_words)}\n"
+
+                    account_config['style_prompt'] = style_prompt
+                    log.info(f"Applied writing style config: tone={ws.tone}, words={ws.min_words}-{ws.max_words}")
+
+                # 读取内容主题配置
+                if account.publish_config and account.publish_config.theme_id:
+                    theme = db.query(ContentTheme).filter(
+                        ContentTheme.id == account.publish_config.theme_id
+                    ).first()
+
+                    if theme:
+                        theme_prompt = f"\n## 内容主题\n"
+                        theme_prompt += f"- 主题：{theme.name}\n"
+                        if theme.description:
+                            theme_prompt += f"- 描述：{theme.description}\n"
+                        if theme.type:
+                            theme_prompt += f"- 类型：{theme.type}\n"
+
+                        account_config['theme_prompt'] = theme_prompt
+                        log.info(f"Applied content theme: {theme.name}")
+
         # 构建默认创作要求
         if not requirements:
             requirements = f"写一篇关于'{topic}'的文章，要求内容详实、结构清晰"
+
+        # 整合账号配置到 requirements
+        if account_config:
+            enhanced_requirements = requirements
+            if 'style_prompt' in account_config:
+                enhanced_requirements += account_config['style_prompt']
+            if 'theme_prompt' in account_config:
+                enhanced_requirements += account_config['theme_prompt']
+            requirements = enhanced_requirements
+            log.info(f"Enhanced requirements with account config")
 
         # 构建命令参数
         command = [
@@ -251,7 +308,7 @@ class ContentCreatorService:
             "--priority", "normal"
         ]
 
-        log.info(f"Generating content with Creator CLI: topic='{topic}', requirements='{requirements[:50]}...'")
+        log.info(f"Generating content with account config: topic='{topic}', tone='{tone}'")
 
         # 执行命令并解析输出
         result = ContentCreatorService._run_cli_command(

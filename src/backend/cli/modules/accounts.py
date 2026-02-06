@@ -199,9 +199,16 @@ def create(
     platform_id: int = typer.Option(..., "--platform-id", "-p", help="平台 ID（必填）"),
     owner_id: int = typer.Option(..., "--owner-id", "-o", help="账号所有者 ID（必填）"),
     description: str = typer.Option(None, "--description", "-d", help="账号描述"),
-    status: str = typer.Option("active", "--status", "-s", help="账号状态 (active/inactive)")
+    status: str = typer.Option("active", "--status", "-s", help="账号状态 (active/inactive)"),
+    # 新增：写作风格参数
+    tone: str = typer.Option(None, "--tone", help="写作语气（专业/轻松/幽默/严肃）"),
+    persona: str = typer.Option(None, "--persona", help="人设描述"),
+    min_words: int = typer.Option(None, "--min-words", help="最小字数"),
+    max_words: int = typer.Option(None, "--max-words", help="最大字数"),
+    # 新增：内容主题参数
+    theme_id: int = typer.Option(None, "--theme-id", help="内容主题 ID")
 ):
-    """创建账号（必须指定客户、平台和所有者）"""
+    """创建账号（支持指定写作风格和内容主题）"""
     try:
         with get_session_local()() as db:
             # 验证客户和平台是否存在
@@ -225,6 +232,16 @@ def create(
                 print_error(f"用户不存在: ID {owner_id}")
                 raise typer.Exit(1)
 
+            # 准备写作风格配置
+            writing_style_data = None
+            if any([tone, persona, min_words, max_words]):
+                writing_style_data = {
+                    "tone": tone or "专业",
+                    "persona": persona,
+                    "min_words": min_words or 800,
+                    "max_words": max_words or 1500
+                }
+
             # 准备账号数据
             account_data = {
                 "name": name,
@@ -233,7 +250,9 @@ def create(
                 "owner_id": owner_id,  # 必填
                 "directory_name": f"{platform.code}_{customer.id}_{name}".lower().replace(" ", "_"),
                 "description": description,
-                "is_active": status.lower() == "active"
+                "is_active": status.lower() == "active",
+                "writing_style": writing_style_data,
+                "theme_id": theme_id
             }
 
             # 创建账号
@@ -241,6 +260,17 @@ def create(
             account = account_service.create_account(db, account_data)
 
             print_success(f"账号创建成功 (ID: {account.id})")
+
+            # 显示配置信息
+            if account.writing_style:
+                print_info(f"写作风格: {account.writing_style.tone}, {account.writing_style.min_words}-{account.writing_style.max_words}字")
+            if account.publish_config and account.publish_config.theme_id:
+                from app.models.theme import ContentTheme
+                theme = db.query(ContentTheme).filter(
+                    ContentTheme.id == account.publish_config.theme_id
+                ).first()
+                if theme:
+                    print_info(f"内容主题: {theme.name}")
 
             # 显示账号信息
             account_info = format_account_info(account, detailed=True)
