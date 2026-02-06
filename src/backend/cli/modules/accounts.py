@@ -200,15 +200,16 @@ def create(
     owner_id: int = typer.Option(..., "--owner-id", "-o", help="账号所有者 ID（必填）"),
     description: str = typer.Option(None, "--description", "-d", help="账号描述"),
     status: str = typer.Option("active", "--status", "-s", help="账号状态 (active/inactive)"),
-    # 新增：写作风格参数
+    # 写作风格配置（三种方式，优先级：writing-style-id > 自定义参数 > 默认预设）
+    writing_style_id: int = typer.Option(None, "--writing-style-id", help="写作风格 ID（关联预设风格，推荐）"),
     tone: str = typer.Option(None, "--tone", help="写作语气（专业/轻松/幽默/严肃）"),
     persona: str = typer.Option(None, "--persona", help="人设描述"),
     min_words: int = typer.Option(None, "--min-words", help="最小字数"),
     max_words: int = typer.Option(None, "--max-words", help="最大字数"),
-    # 新增：内容主题参数
+    # 内容主题参数
     theme_id: int = typer.Option(None, "--theme-id", help="内容主题 ID")
 ):
-    """创建账号（支持指定写作风格和内容主题）"""
+    """创建账号（支持关联预设风格或自定义风格）"""
     try:
         with get_session_local()() as db:
             # 验证客户和平台是否存在
@@ -232,6 +233,15 @@ def create(
                 print_error(f"用户不存在: ID {owner_id}")
                 raise typer.Exit(1)
 
+            # 参数互斥检查并给出警告
+            if writing_style_id and any([tone, persona, min_words, max_words]):
+                print_warning("同时指定了 --writing-style-id 和自定义风格参数")
+                print_warning(f"将使用预设风格 ID {writing_style_id}，忽略自定义参数")
+                tone = None
+                persona = None
+                min_words = None
+                max_words = None
+
             # 准备写作风格配置
             writing_style_data = None
             if any([tone, persona, min_words, max_words]):
@@ -251,6 +261,7 @@ def create(
                 "directory_name": f"{platform.code}_{customer.id}_{name}".lower().replace(" ", "_"),
                 "description": description,
                 "is_active": status.lower() == "active",
+                "writing_style_id": writing_style_id,
                 "writing_style": writing_style_data,
                 "theme_id": theme_id
             }
@@ -263,7 +274,8 @@ def create(
 
             # 显示配置信息
             if account.writing_style:
-                print_info(f"写作风格: {account.writing_style.tone}, {account.writing_style.min_words}-{account.writing_style.max_words}字")
+                style_type = "预设" if account.writing_style.is_system or account.writing_style.account_id != account.id else "自定义"
+                print_info(f"写作风格 ({style_type}): {account.writing_style.tone}, {account.writing_style.min_words}-{account.writing_style.max_words}字")
             if account.publish_config and account.publish_config.theme_id:
                 from app.models.theme import ContentTheme
                 theme = db.query(ContentTheme).filter(
@@ -296,9 +308,10 @@ def update(
     name: str = typer.Option(None, "--name", "-n", help="账号名称"),
     owner_id: int = typer.Option(None, "--owner-id", "-o", help="账号所有者 ID"),
     description: str = typer.Option(None, "--description", "-d", help="账号描述"),
-    status: str = typer.Option(None, "--status", "-s", help="账号状态 (active/inactive)")
+    status: str = typer.Option(None, "--status", "-s", help="账号状态 (active/inactive)"),
+    writing_style_id: int = typer.Option(None, "--writing-style-id", help="写作风格 ID（切换关联的风格）")
 ):
-    """更新账号"""
+    """更新账号（支持切换写作风格）"""
     try:
         with get_session_local()() as db:
             # 获取账号
@@ -323,16 +336,35 @@ def update(
                 update_data["description"] = description
             if status:
                 update_data["is_active"] = status.lower() == "active"
+            if writing_style_id is not None:
+                # 验证写作风格是否存在
+                from app.models.account import WritingStyle
+                style = db.query(WritingStyle).filter(WritingStyle.id == writing_style_id).first()
+                if not style:
+                    print_error(f"写作风格不存在: ID {writing_style_id}")
+                    raise typer.Exit(1)
+                update_data["writing_style_id"] = writing_style_id
 
             if not update_data:
                 print_warning("没有提供任何更新内容")
                 return
+
+            # 记录旧风格信息（用于显示）和是否切换风格
+            old_style_name = account.writing_style.name if account.writing_style else "无"
+            has_style_update = "writing_style_id" in update_data
 
             # 更新账号
             print_info(f"正在更新账号 (ID: {account_id})...")
             account = account_service.update_account(db, account_id, update_data)
 
             print_success("账号信息更新成功")
+
+            # 显示风格切换信息（需要重新查询获取最新风格）
+            if has_style_update:
+                # 刷新 account 对象以获取最新的 writing_style
+                db.refresh(account)
+                new_style_name = account.writing_style.name if account.writing_style else "无"
+                print_info(f"写作风格切换: {old_style_name} → {new_style_name}")
 
             # 显示更新后的信息
             account_info = format_account_info(account, detailed=True)

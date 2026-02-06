@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     CREATOR_CLI_PATH: str = ""
     CREATOR_WORK_DIR: str = os.path.join(data_dir, "creator-work")
 
+    # 默认写作风格配置
+    DEFAULT_WRITING_STYLE_ID: int = 1  # 默认使用"专业技术风格"（ID 1）
+
     # Tavily API 配置（选题搜索）
     TAVILY_API_KEY: str = ""
 

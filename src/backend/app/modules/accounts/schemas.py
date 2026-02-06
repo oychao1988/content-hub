@@ -37,8 +37,9 @@ class AccountCreate(BaseModel):
     display_name: str = Field(..., min_length=1, max_length=200, description="显示名称")
     description: Optional[str] = Field(None, max_length=500, description="账号描述")
     niche: Optional[str] = Field(None, max_length=100, description="垂直领域")
-    # 新增：支持创建时指定写作风格和内容主题
-    writing_style: Optional[WritingStyleCreate] = Field(None, description="写作风格配置")
+    # 写作风格配置（三种方式，优先级：writing_style_id > writing_style > 默认预设）
+    writing_style_id: Optional[int] = Field(None, description="写作风格 ID（关联预设风格）")
+    writing_style: Optional[WritingStyleCreate] = Field(None, description="写作风格配置（创建自定义风格）")
     theme_id: Optional[int] = Field(None, description="内容主题 ID")
 
     class Config:
@@ -51,12 +52,14 @@ class AccountCreate(BaseModel):
                 "display_name": "技术博客",
                 "description": "分享技术文章和教程",
                 "niche": "technology",
-                "writing_style": {
-                    "tone": "专业",
-                    "persona": "技术专家",
-                    "min_words": 1000,
-                    "max_words": 2000
-                },
+                "writing_style_id": 1,  # 推荐使用预设风格
+                # 或使用自定义风格
+                # "writing_style": {
+                #     "tone": "专业",
+                #     "persona": "技术专家",
+                #     "min_words": 1000,
+                #     "max_words": 2000
+                # },
                 "theme_id": 1
             }
         }
@@ -69,13 +72,15 @@ class AccountUpdate(BaseModel):
     display_name: Optional[str] = Field(None, min_length=1, max_length=200, description="显示名称")
     description: Optional[str] = Field(None, max_length=500, description="账号描述")
     niche: Optional[str] = Field(None, max_length=100, description="垂直领域")
+    writing_style_id: Optional[int] = Field(None, description="写作风格 ID（切换关联的风格）")
 
     class Config:
         schema_extra = {
             "example": {
                 "owner_id": 2,
                 "display_name": "技术博客（更新）",
-                "description": "分享最新技术文章和教程"
+                "description": "分享最新技术文章和教程",
+                "writing_style_id": 2  # 切换到"轻松教程风格"
             }
         }
 

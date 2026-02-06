@@ -8,6 +8,8 @@ from app.db.database import get_db
 from app.models.account import Account
 from app.services.account_config_service import account_config_service
 from app.core.cache import cache_query, invalidate_cache_pattern
+from app.core.config import settings
+from app.utils.custom_logger import log
 
 
 class AccountService:
@@ -43,10 +45,16 @@ class AccountService:
 
     @staticmethod
     def create_account(db: Session, account_data: dict, current_user_id: int = None) -> Account:
-        """创建账号（支持级联创建配置）"""
-        # 提取嵌套配置
+        """创建账号（支持级联创建配置和关联预设风格）"""
+        # 提取写作风格配置
+        writing_style_id = account_data.pop('writing_style_id', None)
         writing_style_data = account_data.pop('writing_style', None)
         theme_id = account_data.pop('theme_id', None)
+
+        # 参数互斥检查
+        if writing_style_id and writing_style_data:
+            log.warning(f"同时指定了 writing_style_id 和 writing_style 参数，将忽略 writing_style 并使用预设风格 ID {writing_style_id}")
+            writing_style_data = None
 
         # 字段映射：display_name -> name
         if 'display_name' in account_data:
@@ -70,14 +78,61 @@ class AccountService:
         db.add(account)
         db.flush()  # 获取 account.id，但不提交事务
 
-        # 级联创建写作风格
-        if writing_style_data:
+        # 处理写作风格配置（优先级：writing_style_id > writing_style > 默认预设）
+        if writing_style_id:
+            # 复制预设风格配置创建新风格
+            from app.models.account import WritingStyle
+            preset_style = db.query(WritingStyle).filter(WritingStyle.id == writing_style_id).first()
+            if not preset_style:
+                raise ValueError(f"写作风格不存在: ID {writing_style_id}")
+
+            # 复制预设风格的配置创建专属风格
+            writing_style = WritingStyle(
+                account_id=account.id,
+                name=f"{preset_style.name} (副本)",
+                code=f"account_{account.id}_style",
+                tone=preset_style.tone,
+                persona=preset_style.persona,
+                min_words=preset_style.min_words,
+                max_words=preset_style.max_words,
+                emoji_usage=preset_style.emoji_usage,
+                forbidden_words=preset_style.forbidden_words,
+                is_system=False
+            )
+            db.add(writing_style)
+            log.info(f"账号 {account.id} 复制预设写作风格: {preset_style.name} (ID {writing_style_id})")
+        elif writing_style_data:
+            # 创建自定义风格
             from app.models.account import WritingStyle
             writing_style_data['account_id'] = account.id
             writing_style_data.setdefault('name', f"账号{account.id}风格")
             writing_style_data.setdefault('code', f"account_{account.id}_style")
             writing_style = WritingStyle(**writing_style_data)
             db.add(writing_style)
+            log.info(f"账号 {account.id} 创建自定义写作风格: {writing_style.name}")
+        else:
+            # 使用默认预设风格（复制）
+            default_style_id = settings.DEFAULT_WRITING_STYLE_ID
+            from app.models.account import WritingStyle
+            preset_style = db.query(WritingStyle).filter(WritingStyle.id == default_style_id).first()
+            if preset_style:
+                # 复制默认风格配置
+                writing_style = WritingStyle(
+                    account_id=account.id,
+                    name=f"{preset_style.name} (默认)",
+                    code=f"account_{account.id}_style",
+                    tone=preset_style.tone,
+                    persona=preset_style.persona,
+                    min_words=preset_style.min_words,
+                    max_words=preset_style.max_words,
+                    emoji_usage=preset_style.emoji_usage,
+                    forbidden_words=preset_style.forbidden_words,
+                    is_system=False
+                )
+                db.add(writing_style)
+                log.info(f"账号 {account.id} 使用默认预设写作风格: {preset_style.name} (ID {default_style_id})")
+            else:
+                log.warning(f"默认写作风格 ID {default_style_id} 不存在，账号 {account.id} 未关联写作风格")
 
         # 级联创建发布配置
         if theme_id:
@@ -98,21 +153,58 @@ class AccountService:
 
     @staticmethod
     def update_account(db: Session, account_id: int, account_data: dict, current_user_id: int = None) -> Optional[Account]:
-        """更新账号"""
+        """更新账号（支持切换写作风格）"""
         account = db.query(Account).filter(Account.id == account_id).first()
-        if account:
-            for key, value in account_data.items():
-                setattr(account, key, value)
+        if not account:
+            return None
 
-            # 更新修改人（方案 A: 审计追踪）
-            if current_user_id:
-                account.updated_by = current_user_id
+        # 处理写作风格切换
+        writing_style_id = account_data.pop('writing_style_id', None)
+        if writing_style_id is not None:
+            from app.models.account import WritingStyle
 
-            db.commit()
-            db.refresh(account)
+            # 验证新风格是否存在
+            preset_style = db.query(WritingStyle).filter(WritingStyle.id == writing_style_id).first()
+            if not preset_style:
+                raise ValueError(f"写作风格不存在: ID {writing_style_id}")
 
-            # 失效相关缓存
-            invalidate_cache_pattern("account")
+            # 记录旧风格信息
+            old_style_name = account.writing_style.name if account.writing_style else "无"
+
+            # 删除旧的自定义风格
+            if account.writing_style and account.writing_style.account_id == account_id:
+                log.info(f"删除账号 {account_id} 的旧自定义风格: {account.writing_style.name}")
+                db.delete(account.writing_style)
+
+            # 复制新风格的配置创建专属风格
+            new_style = WritingStyle(
+                account_id=account.id,
+                name=f"{preset_style.name} (副本)",
+                code=f"account_{account.id}_style",
+                tone=preset_style.tone,
+                persona=preset_style.persona,
+                min_words=preset_style.min_words,
+                max_words=preset_style.max_words,
+                emoji_usage=preset_style.emoji_usage,
+                forbidden_words=preset_style.forbidden_words,
+                is_system=False
+            )
+            db.add(new_style)
+            log.info(f"账号 {account_id} 切换写作风格: {old_style_name} -> {preset_style.name} (ID {writing_style_id})")
+
+        # 更新其他字段
+        for key, value in account_data.items():
+            setattr(account, key, value)
+
+        # 更新修改人（方案 A: 审计追踪）
+        if current_user_id:
+            account.updated_by = current_user_id
+
+        db.commit()
+        db.refresh(account)
+
+        # 失效相关缓存
+        invalidate_cache_pattern("account")
 
         return account
 
