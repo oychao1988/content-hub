@@ -36,16 +36,34 @@ class PublisherService:
                 publish_to_draft=request.get("publish_to_draft", True)
             )
 
-            # 创建发布日志
-            publish_log = PublishLog(
-                account_id=request["account_id"],
-                content_id=request["content_id"],
-                platform="wechat",
-                media_id=publish_result.get("media_id"),
-                status="success",
-                result=str(publish_result)
-            )
-            db.add(publish_log)
+            # 查找是否已存在该内容的发布日志
+            publish_log = db.query(PublishLog).filter(
+                PublishLog.content_id == request["content_id"]
+            ).first()
+
+            if publish_log:
+                # 更新现有记录
+                publish_log.account_id = request["account_id"]
+                publish_log.platform = "wechat"
+                publish_log.media_id = publish_result.get("media_id")
+                publish_log.status = "success"
+                publish_log.error_message = None
+                publish_log.result = str(publish_result)
+                publish_log.publish_time = datetime.utcnow()
+                publish_log.updated_at = datetime.utcnow()
+            else:
+                # 创建新发布日志
+                publish_log = PublishLog(
+                    account_id=request["account_id"],
+                    content_id=request["content_id"],
+                    platform="wechat",
+                    media_id=publish_result.get("media_id"),
+                    status="success",
+                    result=str(publish_result),
+                    publish_time=datetime.utcnow()
+                )
+                db.add(publish_log)
+
             db.commit()
             db.refresh(publish_log)
 
@@ -57,15 +75,27 @@ class PublisherService:
             }
 
         except Exception as e:
-            # 记录失败日志
-            publish_log = PublishLog(
-                account_id=request["account_id"],
-                content_id=request["content_id"],
-                platform="wechat",
-                status="failed",
-                error_message=str(e)
-            )
-            db.add(publish_log)
+            # 查找是否已存在该内容的发布日志
+            publish_log = db.query(PublishLog).filter(
+                PublishLog.content_id == request["content_id"]
+            ).first()
+
+            if publish_log:
+                # 更新现有记录
+                publish_log.status = "failed"
+                publish_log.error_message = str(e)
+                publish_log.updated_at = datetime.utcnow()
+            else:
+                # 创建失败日志
+                publish_log = PublishLog(
+                    account_id=request["account_id"],
+                    content_id=request["content_id"],
+                    platform="wechat",
+                    status="failed",
+                    error_message=str(e)
+                )
+                db.add(publish_log)
+
             db.commit()
 
             return {

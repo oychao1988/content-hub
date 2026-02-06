@@ -55,16 +55,22 @@ class BatchPublishService:
                     fail_count += 1
                     continue
 
-                # 创建发布日志
-                publish_log = PublishLog(
-                    account_id=account_id,
-                    content_id=content_id,
-                    platform="wechat",
-                    status="pending"
-                )
-                db.add(publish_log)
-                db.commit()
-                db.refresh(publish_log)
+                # 查找或创建发布日志
+                publish_log = db.query(PublishLog).filter(
+                    PublishLog.content_id == content_id
+                ).first()
+
+                if not publish_log:
+                    # 创建新发布日志
+                    publish_log = PublishLog(
+                        account_id=account_id,
+                        content_id=content_id,
+                        platform="wechat",
+                        status="pending"
+                    )
+                    db.add(publish_log)
+                    db.commit()
+                    db.refresh(publish_log)
 
                 # 添加到发布池
                 pool_entry = publish_pool_service.add_to_pool(
