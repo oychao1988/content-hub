@@ -19,6 +19,9 @@ class ScheduledTask(Base):
     description = Column(String(255), comment="任务描述")
     task_type = Column(String(50), nullable=False, comment="任务类型：content_generation/publishing")
 
+    # 任务参数（JSON格式）
+    params = Column(JSON, comment="任务参数（JSON格式）")
+
     # 调度配置
     cron_expression = Column(String(50), comment="Cron 表达式")
     interval = Column(Integer, comment="间隔时间")

@@ -2,8 +2,8 @@
 
 欢迎来到 ContentHub 项目文档中心。本文档采用标准化的分类管理体系，按文档用途和生命周期组织。
 
-> **最后更新**: 2026-02-05
-> **文档版本**: 2.3.0
+> **最后更新**: 2026-02-07
+> **文档版本**: 2.5.0
 
 ---
 
@@ -46,6 +46,7 @@
 |------|------|------|
 | system-design.md | ✅ 已实施 | ContentHub 系统设计文档 |
 | cli-system-design.md | ✅ 已实施 | CLI 系统设计文档（13个模块，123个命令） |
+| scheduler-system-design.md | ✅ 已实施 | 定时任务系统设计文档 |
 
 ### 2. 用户指南 (guides/)
 
@@ -56,6 +57,8 @@
 | quick-start.md | 快速开始指南 |
 | cli-quick-start.md | CLI 快速入门指南 |
 | quick-reference.md | 快速参考手册 |
+| **scheduler-quick-reference.md** | **定时任务快速参考指南** ✨ |
+| **publishing-executor-quickstart.md** | **发布执行器快速入门** ✨ |
 
 ### 3. 架构文档 (architecture/)
 
@@ -71,8 +74,9 @@
 
 | 文档 | 描述 |
 |------|------|
+| **SCHEDULER-TASK-IMPLEMENTATION-SUMMARY.md** | **定时任务功能实现总结（6个阶段完成）** ✨ |
 | CLI-IMPLEMENTATION-SUMMARY.md | CLI 系统实施总结（13个模块完成） |
-| CLI-TEST-REPORT.md | CLI 系统测试报告（覆盖率72.36%） |
+| CLI-TESTREPORT.md | CLI 系统测试报告（覆盖率72.36%） |
 | CLI-TEST-FIX-SUMMARY.md | CLI 测试 Bug 修复总结 |
 | DOCKER_STRUCTURE.md | Docker 结构说明 |
 | FINAL-GAP-FILLING-COMPLETION-REPORT.md | 差距填补完成报告 |
@@ -155,17 +159,17 @@ design/  → 对应目录  → archive/
 
 | 分类 | 文档数量 | 状态 |
 |------|---------|------|
-| 设计文档 | 2 | 活跃 |
-| 用户指南 | 4 | 活跃 |
+| 设计文档 | 3 | 活跃 |
+| 用户指南 | 6 | 活跃 |
 | 架构文档 | 1 | 活跃 |
-| 开发文档 | 7 | 活跃 |
+| 开发文档 | 8 | 活跃 |
 | 技术参考 | 10 | 活跃 |
 | 测试文档 | 3 | 活跃 |
 | 计划文档 | 3 | 活跃 |
-| 归档文档 | 77+ | 归档 |
+| 归档文档 | 86+ | 归档 |
 | 其他 | 44+ | 辅助 |
 
-**总计**: 151+ 份文档
+**总计**: 164+ 份文档
 
 ---
 

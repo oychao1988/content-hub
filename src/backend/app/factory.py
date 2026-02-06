@@ -117,20 +117,13 @@ def create_app() -> FastAPI:
         """应用启动时执行"""
         log.info(f"🚀 启动 {settings.APP_NAME} v{settings.APP_VERSION}")
 
-        # 运行模块启动钩子
+        # 运行模块启动钩子（包括调度器启动和任务加载）
         await run_startup(modules, app)
 
         # 初始化数据库
         if getattr(settings, "SQL_AUTO_INIT", True):
             init_db()
             log.info("✅ 数据库初始化完成")
-
-        # 启动任务调度器
-        if settings.SCHEDULER_ENABLED:
-            from app.services.scheduler_service import scheduler_service
-
-            scheduler_service.start()
-            log.info("✅ 任务调度器已启动")
 
     # 关闭事件
     @app.on_event("shutdown")
