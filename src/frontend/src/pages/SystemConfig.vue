@@ -257,7 +257,7 @@ const apiConfig = reactive({
   rate_limit: 1000,
   token_expiration: 24,
   enable_cors: true,
-  allowed_origins: 'http://localhost:5173\nhttp://localhost:3000'
+  allowed_origins: 'http://localhost:18030'
 })
 
 const handleSave = async () => {

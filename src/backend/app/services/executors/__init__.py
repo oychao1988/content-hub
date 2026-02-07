@@ -5,8 +5,14 @@
 """
 from app.services.executors.content_generation_executor import ContentGenerationExecutor
 from app.services.executors.publishing_executor import PublishingExecutor
+from app.services.executors.workflow_executor import WorkflowExecutor
+from app.services.executors.add_to_pool_executor import AddToPoolExecutor
+from app.services.executors.approve_executor import ApproveExecutor
 
 __all__ = [
     "ContentGenerationExecutor",
     "PublishingExecutor",
+    "WorkflowExecutor",
+    "AddToPoolExecutor",
+    "ApproveExecutor",
 ]

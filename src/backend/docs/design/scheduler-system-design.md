@@ -367,8 +367,302 @@ python -m mypy app/services/scheduler_service.py
 
 参考 `scheduler_service_examples.py` 查看完整的使用示例。
 
+## 已注册的执行器
+
+ContentHub 系统当前已注册的执行器：
+
+| 执行器类型 | 类名 | 功能描述 |
+|-----------|------|----------|
+| `content_generation` | ContentGenerationExecutor | 自动生成内容 |
+| `publishing` | PublishingExecutor | 批量发布内容到发布池 |
+| `workflow` | WorkflowExecutor | 编排多个执行步骤 |
+| `add_to_pool` | AddToPoolExecutor | 将内容加入发布池 |
+| `approve` | ApproveExecutor | 审核内容 |
+
+**查看已注册的执行器**：
+
+```python
+from app.services.scheduler_service import scheduler_service
+
+executors = scheduler_service.get_registered_executors()
+for executor_type, executor_info in executors.items():
+    print(f"{executor_type}: {executor_info}")
+```
+
+## 工作流执行器架构
+
+### 设计概述
+
+工作流执行器（WorkflowExecutor）是一个特殊的执行器，用于编排多个执行步骤。它提供了强大的流程编排能力。
+
+### 核心特性
+
+1. **顺序执行**: 步骤按定义顺序依次执行
+2. **上下文传递**: 步骤间通过上下文共享数据
+3. **变量引用**: 支持 `${variable_name}` 格式引用上下文变量
+4. **错误中断**: 任何步骤失败则中断整个工作流
+5. **结果汇总**: 返回所有步骤的执行结果
+
+### 执行流程
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ WorkflowExecutor.execute()                              │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  1. 验证参数（steps）                                    │
+│     ├── 检查 steps 是否存在                             │
+│     └── 验证每个步骤格式                                │
+│                                                          │
+│  2. 初始化上下文（context = {}）                        │
+│                                                          │
+│  3. 遍历执行步骤                                        │
+│     └── 对每个 step:                                    │
+│         a. 解析变量引用（${variable}）                  │
+│         b. 调用对应执行器                               │
+│         c. 检查执行结果                                 │
+│         d. 合并 data 到上下文                           │
+│         e. 失败则中断                                   │
+│                                                          │
+│  4. 返回汇总结果                                        │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 变量解析机制
+
+变量解析使用正则表达式匹配和替换：
+
+```python
+def _resolve_variables(self, params: Dict, context: Dict) -> Dict:
+    """
+    解析参数中的变量引用
+
+    支持格式:
+    - 简单引用: ${content_id}
+    - 嵌套引用: ${user.name}
+    - 组合引用: "内容 ${title} 已生成，ID: ${content_id}"
+    """
+    import re
+
+    pattern = re.compile(r'\$\{([^}]+)\}')
+
+    def resolve_value(value):
+        if isinstance(value, str):
+            # 替换字符串中的变量
+            def replace_var(match):
+                var_name = match.group(1)
+                return str(context.get(var_name, match.group(0)))
+            return pattern.sub(replace_var, value)
+        elif isinstance(value, dict):
+            # 递归处理字典
+            return {k: resolve_value(v) for k, v in value.items()}
+        elif isinstance(value, list):
+            # 递归处理列表
+            return [resolve_value(item) for item in value]
+        return value
+
+    return resolve_value(params)
+```
+
+### 上下文传递示例
+
+```python
+# 初始上下文
+context = {}
+
+# 步骤 1: content_generation
+step1_result = {
+    "success": True,
+    "data": {
+        "content_id": 123,
+        "title": "测试文章",
+        "word_count": 1500
+    }
+}
+context.update(step1_result["data"])
+# context = {"content_id": 123, "title": "测试文章", "word_count": 1500}
+
+# 步骤 2: approve (使用变量引用)
+step2_params = {"content_id": "${content_id}"}
+resolved_params = {"content_id": 123}  # 解析后
+
+step2_result = {
+    "success": True,
+    "data": {
+        "content_id": 123,
+        "review_status": "approved"
+    }
+}
+context.update(step2_result["data"])
+# context = {"content_id": 123, "title": "测试文章", "word_count": 1500, "review_status": "approved"}
+
+# 步骤 3: add_to_pool (可以使用任何上下文变量)
+step3_params = {
+    "content_id": "${content_id}",
+    "priority": 5,
+    "note": "标题: ${title}, 字数: ${word_count}"
+}
+resolved_params = {
+    "content_id": 123,
+    "priority": 5,
+    "note": "标题: 测试文章, 字数: 1500"
+}
+```
+
+### 工作流参数结构
+
+```json
+{
+  "steps": [
+    {
+      "type": "content_generation",
+      "params": {
+        "account_id": 49,
+        "topic": "新能源汽车行业最新动态"
+      }
+    },
+    {
+      "type": "approve",
+      "params": {
+        "content_id": "${content_id}"
+      }
+    },
+    {
+      "type": "add_to_pool",
+      "params": {
+        "content_id": "${content_id}",
+        "priority": 5,
+        "note": "审核通过，ID: ${content_id}"
+      }
+    }
+  ]
+}
+```
+
+### 新增执行器架构
+
+#### AddToPoolExecutor
+
+**功能**: 将内容加入发布池
+
+**参数验证**:
+- `content_id`: 必需，整数
+- `priority`: 可选，整数（1-10），默认5
+- `scheduled_at`: 可选，日期时间字符串
+- `auto_approve`: 可选，布尔值，默认false
+
+**返回数据**:
+```json
+{
+  "pool_id": 456,
+  "content_id": 123,
+  "priority": 5,
+  "scheduled_at": null,
+  "auto_approved": true
+}
+```
+
+#### ApproveExecutor
+
+**功能**: 审核内容
+
+**参数验证**:
+- `content_id`: 必需，整数
+- `review_status`: 可选，字符串，默认"approved"
+- `review_note`: 可选，字符串
+
+**返回数据**:
+```json
+{
+  "content_id": 123,
+  "content_title": "文章标题",
+  "original_status": "pending",
+  "new_status": "approved"
+}
+```
+
+### 扩展性设计
+
+#### 添加新执行器
+
+创建自定义执行器：
+
+```python
+from app.services.scheduler_service import TaskExecutor, TaskExecutionResult
+from typing import Dict, Any
+from sqlalchemy.orm import Session
+
+class CustomExecutor(TaskExecutor):
+    @property
+    def executor_type(self) -> str:
+        return "custom_type"
+
+    def validate_params(self, task_params: Dict[str, Any]) -> bool:
+        # 自定义参数验证逻辑
+        required_fields = ["field1", "field2"]
+        return all(field in task_params for field in required_fields)
+
+    async def execute(
+        self,
+        task_id: int,
+        task_params: Dict[str, Any],
+        db: Session
+    ) -> TaskExecutionResult:
+        try:
+            # 执行业务逻辑
+            result_data = {}
+            return TaskExecutionResult.success_result(
+                message="执行成功",
+                data=result_data
+            )
+        except Exception as e:
+            return TaskExecutionResult.failure_result(
+                message="执行失败",
+                error=str(e)
+            )
+```
+
+注册执行器：
+
+```python
+from app.modules.scheduler.module import startup
+
+def startup(app):
+    from app.services.executors.custom_executor import CustomExecutor
+
+    custom_executor = CustomExecutor()
+    scheduler_service.register_executor(custom_executor)
+```
+
+在工作流中使用：
+
+```json
+{
+  "steps": [
+    {
+      "type": "custom_type",
+      "params": {
+        "field1": "value1",
+        "field2": "${context_var}"
+      }
+    }
+  ]
+}
+```
+
 ## 文件位置
 
 - 核心实现: `/Users/Oychao/Documents/Projects/content-hub/src/backend/app/services/scheduler_service.py`
 - 使用示例: `/Users/Oychao/Documents/Projects/content-hub/src/backend/app/services/scheduler_service_examples.py`
-- 本文档: `/Users/Oychao/Documents/Projects/content-hub/src/backend/app/services/SCHEDULER_DESIGN.md`
+- 工作流执行器: `/Users/Oychao/Documents/Projects/content-hub/src/backend/app/services/executors/workflow_executor.py`
+- 加入发布池执行器: `/Users/Oychao/Documents/Projects/content-hub/src/backend/app/services/executors/add_to_pool_executor.py`
+- 审核执行器: `/Users/Oychao/Documents/Projects/content-hub/src/backend/app/services/executors/approve_executor.py`
+- 本文档: `/Users/Oychao/Documents/Projects/content-hub/src/backend/docs/design/scheduler-system-design.md`
+
+## 相关文档
+
+- [工作流执行器使用指南](../guides/workflow-executor-guide.md) - 工作流执行器详细使用文档
+- [调度器快速参考](../guides/scheduler-quick-reference.md) - 调度器使用快速入门
+- [工作流执行器使用文档](../../../WORKFLOW_EXECUTOR_USAGE.md) - 原始使用文档
+- [工作流执行器测试报告](../../../WORKFLOW_EXECUTOR_TEST_REPORT.md) - 测试报告和验证结果

@@ -12,7 +12,7 @@ services:
     container_name: contenthub-backend-prod
     restart: always
     ports:
-      - "127.0.0.1:8000:8000"  # 仅监听本地，由外部 Nginx 反向代理
+      - "127.0.0.1:18010:18010"  # 仅监听本地，由外部 Nginx 反向代理
     volumes:
       # 持久化数据目录
       - ./data/backend:/app/data
@@ -25,7 +25,7 @@ services:
       - DEBUG=false
       - LOG_LEVEL=WARNING
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/docs', timeout=5)"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:18010/docs', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -52,7 +52,7 @@ services:
     container_name: contenthub-frontend-prod
     restart: always
     ports:
-      - "127.0.0.1:8080:80"  # 监听本地 8080 端口
+      - "127.0.0.1:18030:80"  # 监听本地 18030 端口
     volumes:
       # nginx 日志
       - ./logs/frontend:/var/log/nginx
