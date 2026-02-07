@@ -166,14 +166,18 @@ def list_tasks(
 
 @app.command()
 def create(
+    ctx: typer.Context,
     name: str = typer.Option(..., "--name", "-n", help="任务名称"),
-    type: str = typer.Option(..., "--type", "-t", help="任务类型 (content_generation/publishing)"),
+    type: str = typer.Option(..., "--type", "-t", help="任务类型 (content_generation/publishing/workflow/add_to_pool/approve)"),
     cron: str = typer.Option(None, "--cron", "-c", help="Cron 表达式"),
     account_id: int = typer.Option(None, "--account-id", "-a", help="账号 ID（如果需要）"),
     enabled: bool = typer.Option(True, "--enabled/--disabled", help="是否启用"),
-    description: str = typer.Option(None, "--description", "-d", help="任务描述")
+    description: str = typer.Option(None, "--description", "-d", help="任务描述"),
+    params: str = typer.Option(None, "--params", "-p", help="任务参数 (JSON格式)")
 ):
     """创建定时任务"""
+    import json
+
     try:
         with get_session_local()() as db:
             # 检查任务名称是否已存在
@@ -198,6 +202,16 @@ def create(
                 "cron_expression": cron,
                 "is_active": enabled,
             }
+
+            # 解析 JSON 参数（如果提供）
+            if params:
+                try:
+                    task_params = json.loads(params)
+                    task_data["params"] = task_params
+                    print_info(f"已解析任务参数: {json.dumps(task_params, ensure_ascii=False, indent=2)}")
+                except json.JSONDecodeError as e:
+                    print_error(f"参数格式错误，必须是有效的 JSON: {str(e)}")
+                    raise typer.Exit(1)
 
             # 创建任务
             print_info("正在创建定时任务...")

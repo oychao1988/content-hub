@@ -1,7 +1,7 @@
 // 应用配置
 export default {
   // API 基础地址
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:18010',
 
   // API 版本
   apiVersion: '/api/v1',

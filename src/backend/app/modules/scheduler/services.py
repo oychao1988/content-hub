@@ -89,23 +89,71 @@ class SchedulerManagerService:
         return False
 
     @staticmethod
+    def _parse_task_params(task: ScheduledTask) -> dict:
+        """
+        解析任务参数
+
+        Args:
+            task: 定时任务对象
+
+        Returns:
+            解析后的参数字典
+        """
+        # 从 task.params 字段读取参数
+        if task.params:
+            if isinstance(task.params, dict):
+                return task.params
+            elif isinstance(task.params, str):
+                import json
+                try:
+                    return json.loads(task.params)
+                except json.JSONDecodeError:
+                    pass
+
+        # 如果没有参数或解析失败，返回空字典
+        return {}
+
+    @staticmethod
     def trigger_task(db: Session, task_id: int) -> dict:
         """手动触发任务"""
+        import asyncio
+        from app.utils.custom_logger import log
+
         task = db.query(ScheduledTask).filter(ScheduledTask.id == task_id).first()
         if not task:
             return {"success": False, "error": "任务不存在"}
 
         try:
-            # 执行任务逻辑
+            log.info(f"手动触发任务 {task_id} (类型: {task.task_type})")
+
+            # 解析任务参数
+            task_params = SchedulerManagerService._parse_task_params(task)
+
+            # 执行任务
+            result = asyncio.run(
+                scheduler_service.execute_task(
+                    task_id=task.id,
+                    task_type=task.task_type,
+                    task_params=task_params,
+                    db=db
+                )
+            )
+
+            # 更新最后运行时间
             task.last_run_time = datetime.utcnow()
             db.commit()
 
-            # 这里应该根据任务类型执行相应的操作
-            # 例如：内容生成或发布
+            log.info(f"任务 {task_id} 执行完成: {result.success}")
 
-            return {"success": True, "message": "任务执行成功"}
+            return {
+                "success": result.success,
+                "message": result.message,
+                "data": result.data,
+                "error": result.error
+            }
 
         except Exception as e:
+            log.exception(f"手动触发任务 {task_id} 时发生异常")
             return {"success": False, "error": str(e)}
 
     @staticmethod

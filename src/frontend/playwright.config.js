@@ -28,7 +28,7 @@ export default defineConfig({
   /* 全局设置 */
   use: {
     /* 基础 URL */
-    baseURL: 'http://localhost:3010',
+    baseURL: 'http://localhost:18030',
 
     /* 追踪设置（失败时保留追踪） */
     trace: 'on-first-retry',
@@ -75,7 +75,7 @@ export default defineConfig({
   /* 测试开始前启动开发服务器 */
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3010',
+    url: 'http://localhost:18030',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },

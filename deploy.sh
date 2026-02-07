@@ -77,8 +77,8 @@ start_services() {
     cd "$PROJECT_ROOT"
     docker compose up -d
     log_info "服务启动完成！"
-    log_info "前端地址: http://localhost"
-    log_info "后端 API: http://localhost:8000/docs"
+    log_info "前端地址: http://localhost:18030"
+    log_info "后端 API: http://localhost:18010/docs"
 }
 
 # 停止服务
@@ -123,7 +123,7 @@ view_status() {
     fi
 
     # 检查后端
-    if curl -s http://localhost:8000/docs > /dev/null 2>&1; then
+    if curl -s http://localhost:18010/docs > /dev/null 2>&1; then
         echo -e "${GREEN}✓${NC} 后端服务正常"
     else
         echo -e "${RED}✗${NC} 后端服务异常"
