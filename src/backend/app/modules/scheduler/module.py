@@ -10,14 +10,27 @@ router.include_router(endpoints.router, tags=["scheduler"])
 def startup(app):
     """定时任务模块启动时执行的代码"""
     from app.services.scheduler_service import scheduler_service
-    from app.services.executors import ContentGenerationExecutor, PublishingExecutor
+    from app.services.executors import (
+        ContentGenerationExecutor,
+        PublishingExecutor,
+        WorkflowExecutor,
+        AddToPoolExecutor,
+        ApproveExecutor
+    )
     from app.db.database import SessionLocal
 
     # 注册任务执行器
     content_gen_executor = ContentGenerationExecutor()
     publishing_executor = PublishingExecutor()
+    workflow_executor = WorkflowExecutor()
+    add_to_pool_executor = AddToPoolExecutor()
+    approve_executor = ApproveExecutor()
+
     scheduler_service.register_executor(content_gen_executor)
     scheduler_service.register_executor(publishing_executor)
+    scheduler_service.register_executor(workflow_executor)
+    scheduler_service.register_executor(add_to_pool_executor)
+    scheduler_service.register_executor(approve_executor)
 
     log.info(f"已注册执行器: {list(scheduler_service.get_registered_executors().keys())}")
 
