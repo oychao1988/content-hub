@@ -57,3 +57,26 @@ htmlcov/
 tmp/
 temp/
 *.tmp
+# 测试覆盖率文件
+.coverage.*
+coverage.xml
+htmlcov/
+
+# 临时备份文件
+*.backup
+*.bak
+
+# 临时报告文件
+DOC_UPDATE_SUMMARY.md
+WORKFLOW_TEST_SUMMARY.md
+chejie_task_usage_guide.md
+
+# 临时测试脚本
+test_content_generation_executor.py
+test_scheduler_loading.py
+verify_executor_registration.py
+verify_scheduler_system.py
+verify_task.py
+
+# 示例文件
+app/services/scheduler_service_examples.py
