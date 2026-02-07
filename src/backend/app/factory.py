@@ -4,7 +4,7 @@ ContentHub 应用工厂
 from __future__ import annotations
 
 import time
-from typing import Dict
+from typing import Dict, Optional, Union
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -34,9 +34,9 @@ class ApiResponse(BaseModel):
     """统一 API 响应格式"""
 
     success: bool
-    data: Dict | None = None
-    message: str | None = None
-    error: str | None = None
+    data: Optional[Dict] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
 
 
 def create_app() -> FastAPI:
