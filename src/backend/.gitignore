@@ -80,3 +80,6 @@ verify_task.py
 
 # 示例文件
 app/services/scheduler_service_examples.py
+# 临时脚本
+run_workflow_tests.sh
+scripts/start_scheduler_and_verify.py
