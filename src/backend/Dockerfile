@@ -32,17 +32,17 @@ RUN mkdir -p /app/data /app/logs && \
     chmod -R 755 /app/data /app/logs
 
 # 暴露端口
-EXPOSE 8000
+EXPOSE 18010
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/docs', timeout=5)"
+    CMD python -c "import requests; requests.get('http://localhost:18010/docs', timeout=5)"
 
 # 使用 gunicorn 启动应用
 CMD ["gunicorn", "main:app", \
      "-w", "4", \
      "-k", "uvicorn.workers.UvicornWorker", \
-     "-b", "0.0.0.0:8000", \
+     "-b", "0.0.0.0:18010", \
      "--access-logfile", "/app/logs/access.log", \
      "--error-logfile", "/app/logs/error.log", \
      "--log-level", "info"]
