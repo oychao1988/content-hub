@@ -233,6 +233,31 @@ pytest -k "config"              # 运行名称包含 "config" 的测试
 | content-creator | 内容生成 | subprocess | `CREATOR_CLI_PATH` |
 | content-publisher | 微信公众号发布 | HTTP API | `PUBLISHER_API_URL`, `PUBLISHER_API_KEY` |
 | Tavily API | 选题搜索 | HTTP API | `TAVILY_API_KEY` |
+| Webhook 接收 | 异步任务回调 | HTTP POST | `WEBHOOK_ENABLED`, `WEBHOOK_SECRET_KEY` |
+
+### Webhook 功能说明
+
+ContentHub 支持 Webhook 回调接收功能，用于实时接收 content-creator 的异步任务完成通知。
+
+**核心特性**：
+- 实时回调：任务完成后 < 2 秒内收到通知
+- 签名验证：支持 HMAC-SHA256 签名验证（可选）
+- 幂等性保证：自动避免重复处理
+- 双重保障：与轮询机制互为补充
+
+**配置参数**：
+```bash
+# .env 配置
+WEBHOOK_ENABLED=true                      # 是否启用 Webhook
+WEBHOOK_SECRET_KEY=your-secret-key        # 签名密钥（可选）
+WEBHOOK_TIMEOUT=10                        # 回调处理超时（秒）
+WEBHOOK_REQUIRE_SIGNATURE=false           # 是否要求签名验证
+```
+
+**回调端点**：
+- 路径：`/api/v1/content/callback/{task_id}`
+- 方法：POST
+- 详细说明：[docs/guides/webhook-configuration.md](docs/guides/webhook-configuration.md)
 
 > 详细集成说明：[docs/architecture/ARCHITECTURE.md#七、集成架构](docs/architecture/ARCHITECTURE.md#七、集成架构)
 

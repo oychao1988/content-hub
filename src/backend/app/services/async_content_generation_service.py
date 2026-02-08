@@ -140,7 +140,30 @@ class AsyncContentGenerationService:
         if task.keywords:
             command.extend(["--keywords", task.keywords])
 
+        # 处理 Webhook 回调 URL
+        if settings.WEBHOOK_ENABLED:
+            # 构造回调 URL
+            base_url = getattr(settings, 'WEBHOOK_CALLBACK_BASE_URL', None)
+            if not base_url:
+                # 如果没有配置 WEBHOOK_CALLBACK_BASE_URL，使用默认构造
+                # 注意：这里使用 HOST 和 PORT，但建议在生产环境配置 WEBHOOK_CALLBACK_BASE_URL
+                base_url = f"http://{settings.HOST}:{settings.PORT}"
+
+            callback_url = f"{base_url}/api/v1/content/callback/{task.task_id}"
+
+            # 更新任务记录
+            task.callback_url = callback_url
+            self.db.commit()
+
+            # 添加到 CLI 命令
+            command.extend(["--callback-url", callback_url])
+
+            log.info(f"Webhook callback enabled for task {task.task_id}: {callback_url}")
+        else:
+            log.info(f"Webhook callback disabled for task {task.task_id}")
+
         log.info(f"Submitting task to creator: {task.task_id}")
+        log.debug(f"Command arguments: {' '.join(command)}")
 
         try:
             result = subprocess.run(
@@ -194,6 +217,7 @@ class AsyncContentGenerationService:
             "topic": task.topic,
             "priority": task.priority,
             "auto_approve": task.auto_approve,
+            "callback_url": task.callback_url,
             "created_at": task.created_at.isoformat() if task.created_at else None,
             "submitted_at": task.submitted_at.isoformat() if task.submitted_at else None,
             "started_at": task.started_at.isoformat() if task.started_at else None,

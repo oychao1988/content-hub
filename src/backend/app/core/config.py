@@ -95,6 +95,8 @@ class Settings(BaseSettings):
     WEBHOOK_URL: Optional[str] = None  # Webhook 回调 URL
     WEBHOOK_TIMEOUT: int = 10  # Webhook 请求超时（秒）
     WEBHOOK_SECRET_KEY: Optional[str] = None  # Webhook 签名密钥
+    WEBHOOK_REQUIRE_SIGNATURE: bool = False  # 是否强制要求签名验证（生产环境推荐启用）
+    WEBHOOK_CALLBACK_BASE_URL: Optional[str] = None  # Webhook 回调基础 URL（外部访问地址）
 
     # Redis 配置（用于队列和缓存）
     REDIS_ENABLED: bool = False  # 是否启用 Redis
