@@ -41,6 +41,11 @@ class Content(Base):
     scheduled_at = Column(DateTime(timezone=True), comment="计划发布时间")
     published_at = Column(DateTime(timezone=True), comment="实际发布时间")
 
+    # 异步生成相关字段
+    generation_task_id = Column(String(100), index=True, comment="关联的生成任务 ID")
+    auto_publish = Column(Boolean, default=False, comment="是否自动发布")
+    scheduled_publish_at = Column(DateTime(timezone=True), comment="自动发布的计划时间")
+
     # 时间戳
     created_at = Column(DateTime(timezone=True), server_default=func.now(), comment="创建时间")
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), comment="更新时间")
@@ -49,6 +54,7 @@ class Content(Base):
     account = relationship("Account", back_populates="contents")
     publish_log = relationship("PublishLog", back_populates="content", uselist=False)
     pool_entry = relationship("PublishPool", back_populates="content", uselist=False, cascade="all, delete-orphan")
+    generation_tasks = relationship("ContentGenerationTask", back_populates="content")
 
     def __repr__(self):
         return f"<Content(id={self.id}, title={self.title}, publish_status={self.publish_status})>"

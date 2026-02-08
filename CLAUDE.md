@@ -325,6 +325,70 @@ npm run build           # 构建生产版本
 npm run lint            # 代码检查
 ```
 
+### 内容管理和发布（常用 CLI 指令）
+
+```bash
+# 查看系统状态
+python -m cli.main dashboard stats              # 查看系统总览统计
+
+# 内容管理
+python -m cli.main content list                 # 查看所有内容
+python -m cli.main content info <id>            # 查看内容详情
+python -m cli.main content review-list          # 查看待审核列表
+python -m cli.main content approve <id>         # 审核通过内容
+python -m cli.main content reject <id>          # 审核拒绝内容
+
+# 内容生成
+python -m cli.main content create -a <account_id> -t "标题"  # 创建内容草稿
+python -m cli.main content generate -a <account_id> -t "选题" --keywords "关键词1,关键词2"  # AI 生成内容
+python -m cli.main content topic-search -a <account_id> -k "关键词1,关键词2" --max-results 5  # 选题搜索
+python -m cli.main content batch-generate       # 批量生成内容
+
+# 发布管理
+python -m cli.main publisher history            # 查看发布历史
+python -m cli.main publisher publish <id>       # 手动发布内容（到草稿箱）
+python -m cli.main publisher publish <id> --no-draft  # 直接发布（不进草稿箱）
+python -m cli.main publisher retry <id>         # 重试失败的发布
+python -m cli.main publisher batch-publish      # 批量发布待发布内容
+python -m cli.main publisher stats              # 查看发布统计
+
+# 发布池管理
+python -m cli.main publish-pool list            # 查看发布池任务
+python -m cli.main publish-pool add <id> -p 5   # 添加内容到发布池（优先级1-10）
+python -m cli.main publish-pool remove <id>     # 从发布池移除内容
+python -m cli.main publish-pool schedule <id>   # 设置计划发布时间
+python -m cli.main publish-pool set-priority <id> -p 3  # 设置优先级
+python -m cli.main publish-pool publish         # 手动触发批量发布
+python -m cli.main publish-pool retry <id>      # 重试发布池任务
+
+# 调度器管理
+python -m cli.main scheduler status             # 查看调度器状态
+python -m cli.main scheduler start              # 启动调度器
+python -m cli.main scheduler stop               # 停止调度器
+python -m cli.main scheduler list               # 查看所有定时任务
+python -m cli.main scheduler info <task_id>     # 查看任务详情和执行历史
+
+# 账号管理
+python -m cli.main accounts list                # 查看所有账号
+```
+
+**典型工作流程**：
+
+**流程1：生成并发布文章**
+1. `python -m cli.main content create -a <account_id> -t "标题"` - 创建内容草稿
+2. `python -m cli.main content generate -a <account_id> -t "选题" --keywords "关键词"` - AI 生成内容
+3. `python -m cli.main content approve <id>` - 审核通过内容
+4. `python -m cli.main publisher publish <id>` - 发布内容到微信公众号
+5. `python -m cli.main publisher history` - 查看发布历史确认状态
+
+**流程2：发布池自动发布**
+1. `python -m cli.main content create` + `generate` - 生成内容
+2. `python -m cli.main content approve <id>` - 审核通过
+3. `python -m cli.main publish-pool add <id> -p 5` - 添加到发布池
+4. `python -m cli.main scheduler status` - 确认调度器运行中
+5. 等待定时任务自动执行（每分钟检查一次）或手动触发：
+   `python -m cli.main publish-pool publish`
+
 ---
 
 > **提示**：本文档仅包含核心信息。详细操作指南、API 参考、架构设计等文档请查看 [docs/](docs/) 目录。

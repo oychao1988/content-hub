@@ -7,11 +7,11 @@ CLI 模块包
 from cli.modules import (
     db, users, accounts, content,
     scheduler, publisher, publish_pool,
-    platform, customer, config, audit, dashboard, system
+    platform, customer, config, audit, dashboard, system, task, monitor
 )
 
 __all__ = [
     "db", "users", "accounts", "content",
     "scheduler", "publisher", "publish_pool",
-    "platform", "customer", "config", "audit", "dashboard", "system"
+    "platform", "customer", "config", "audit", "dashboard", "system", "task", "monitor"
 ]

@@ -7,7 +7,7 @@ ContentHub CLI - 主应用入口
 import typer
 from cli.modules import (
     db, users, accounts, content, scheduler, publisher, publish_pool,
-    platform, customer, config, audit, dashboard, system
+    platform, customer, config, audit, dashboard, system, task, monitor
 )
 
 # 创建主应用 - 禁用 rich 输出以避免兼容性问题
@@ -33,6 +33,8 @@ app.add_typer(config.app, name="config", help="配置管理")
 app.add_typer(audit.app, name="audit", help="审计日志")
 app.add_typer(dashboard.app, name="dashboard", help="仪表盘")
 app.add_typer(system.app, name="system", help="系统管理")
+app.add_typer(task.app, name="task", help="异步任务管理")
+app.add_typer(monitor.app, name="monitor", help="监控和管理异步任务")
 
 
 @app.callback()

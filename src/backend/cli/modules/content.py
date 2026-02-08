@@ -222,19 +222,29 @@ def create(
 
 @app.command()
 def generate(
+    ctx: typer.Context,
     account_id: int = typer.Option(..., "--account-id", "-a", help="账号 ID"),
     topic: str = typer.Option(..., "--topic", "-t", help="选题"),
     keywords: str = typer.Option(None, "--keywords", "-k", help="关键词（逗号分隔）"),
     category: str = typer.Option("默认", "--category", "-c", help="内容板块"),
     requirements: str = typer.Option(None, "--requirements", "-r", help="创作要求"),
     tone: str = typer.Option("友好专业", "--tone", help="语气风格"),
+    priority: int = typer.Option(5, "--priority", "-p", help="优先级（1-10）"),
+    async_mode: bool = typer.Option(False, "--async", help="异步模式"),
+    auto_approve: bool = typer.Option(True, "--auto-approve/--no-auto-approve", help="是否自动审核"),
 ):
     """生成内容（调用 content-creator）
 
     流程：
+    同步模式：
     1. 先创建草稿记录（状态：publishing-生成中）
     2. 调用 content-creator 生成内容
     3. 更新草稿记录（状态：draft-草稿）
+
+    异步模式（--async）：
+    1. 创建异步任务记录
+    2. 提交到后台队列
+    3. 返回任务ID，可通过 task-status 查询进度
 
     状态说明：
     - publishing: 正在生成内容
@@ -249,10 +259,38 @@ def generate(
                 print_error(f"账号不存在: ID {account_id}")
                 raise typer.Exit(1)
 
-            # 检查是否配置了 CLI
+            # 异步模式
+            if async_mode:
+                from app.services.async_content_generation_service import AsyncContentGenerationService
+
+                print_info("异步模式：正在提交任务...")
+
+                service = AsyncContentGenerationService(db)
+                task_id = service.submit_task(
+                    account_id=account_id,
+                    topic=topic,
+                    keywords=keywords,
+                    category=category,
+                    requirements=requirements,
+                    tone=tone,
+                    priority=priority,
+                    auto_approve=auto_approve
+                )
+
+                print_success(f"异步任务已提交")
+                print_info(f"任务ID: {task_id}")
+                print_info(f"状态: pending")
+                print_info(f"\n使用以下命令查看状态:")
+                print_info(f"  contenthub task status {task_id}")
+                print_info(f"\n使用以下命令列出所有任务:")
+                print_info(f"  contenthub task list")
+                return
+
+            # 同步模式：检查是否配置了 CLI
             if not settings.CREATOR_CLI_PATH:
                 print_warning("未配置 content-creator CLI")
                 print_info("请在 .env 文件中设置 CREATOR_CLI_PATH")
+                print_info("提示: 可以使用 --async 参数启用异步模式")
                 raise typer.Exit(1)
 
             print_info(f"准备生成内容...")

@@ -8,6 +8,7 @@ from app.services.executors.publishing_executor import PublishingExecutor
 from app.services.executors.workflow_executor import WorkflowExecutor
 from app.services.executors.add_to_pool_executor import AddToPoolExecutor
 from app.services.executors.approve_executor import ApproveExecutor
+from app.services.executors.async_content_generation_executor import AsyncContentGenerationExecutor
 
 __all__ = [
     "ContentGenerationExecutor",
@@ -15,4 +16,5 @@ __all__ = [
     "WorkflowExecutor",
     "AddToPoolExecutor",
     "ApproveExecutor",
+    "AsyncContentGenerationExecutor",
 ]
