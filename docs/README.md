@@ -2,8 +2,8 @@
 
 欢迎来到 ContentHub 项目文档中心。本文档采用标准化的分类管理体系，按文档用途和生命周期组织。
 
-> **最后更新**: 2026-02-07
-> **文档版本**: 2.5.0
+> **最后更新**: 2026-02-08
+> **文档版本**: 2.6.0
 
 ---
 
@@ -26,10 +26,12 @@
 | 学习 CLI 使用 | [guides/cli-quick-start.md](guides/cli-quick-start.md) |
 | 了解系统架构 | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) |
 | 使用 CLI 命令 | [references/CLI-REFERENCE.md](references/CLI-REFERENCE.md) |
+| **配置 Webhook 功能** | **[guides/webhook-configuration.md](guides/webhook-configuration.md)** ✨ |
 | 查找技术参考 | [references/](references/) |
 | 查看测试报告 | [archive/reports/testing/](archive/reports/testing/) |
 | 查看开发历史 | [archive/phases/](archive/phases/) |
 | 了解功能设计 | [design/](design/) |
+| **查看 Webhook 实施报告** | **[reports/webhook-implementation/](reports/webhook-implementation/)** ✨ |
 | 查看 CLI 实施总结 | [development/CLI-IMPLEMENTATION-SUMMARY.md](development/CLI-IMPLEMENTATION-SUMMARY.md) |
 | 查看 CLI 测试报告 | [development/CLI-TEST-REPORT.md](development/CLI-TEST-REPORT.md) |
 | 查看 CLI 测试项目 | [archive/cli-testing/](archive/cli-testing/) |
@@ -57,6 +59,7 @@
 | quick-start.md | 快速开始指南 |
 | cli-quick-start.md | CLI 快速入门指南 |
 | quick-reference.md | 快速参考手册 |
+| **webhook-configuration.md** | **Webhook 配置完整指南（826行）** ✨ |
 | **scheduler-quick-reference.md** | **定时任务快速参考指南** ✨ |
 | **publishing-executor-quickstart.md** | **发布执行器快速入门** ✨ |
 
@@ -74,6 +77,7 @@
 
 | 文档 | 描述 |
 |------|------|
+| **webhook/** | **Webhook 开发文档目录** ✨ |
 | **SCHEDULER-TASK-IMPLEMENTATION-SUMMARY.md** | **定时任务功能实现总结（6个阶段完成）** ✨ |
 | CLI-IMPLEMENTATION-SUMMARY.md | CLI 系统实施总结（13个模块完成） |
 | CLI-TESTREPORT.md | CLI 系统测试报告（覆盖率72.36%） |
@@ -129,6 +133,34 @@
 | plans/ | 项目实施计划（3份）|
 | backup/ | 备份相关文档 |
 | deployment/ | 部署指南 |
+| **reports/** | **项目报告目录** ✨ |
+| **examples/** | **示例代码目录** ✨ |
+
+---
+
+## 📁 新增文档结构
+
+### Webhook 功能文档（2026-02-08 新增）
+
+**项目报告**:
+- 📘 [reports/webhook-implementation/](reports/webhook-implementation/) - 完整实施文档
+  - 实施计划和总结
+  - 阶段完成报告
+  - 最终完成报告（项目根目录）
+
+**开发文档**:
+- 📗 [development/webhook/](development/webhook/) - 开发阶段文档
+  - 阶段 3 总结
+  - 端点实现文档
+  - 快速配置指南
+
+**用户指南**:
+- 📙 [guides/webhook-configuration.md](guides/webhook-configuration.md) - 完整配置指南（826 行）
+
+**示例代码**:
+- 💡 [examples/webhook/](examples/webhook/) - 使用示例
+  - 签名验证示例
+  - 集成代码示例
 
 ---
 

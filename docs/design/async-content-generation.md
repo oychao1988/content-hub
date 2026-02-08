@@ -257,13 +257,29 @@ content-creator result --task-id "uuid-xxxx"
 
 **关键点**：
 - **轮询间隔**：每30秒检查一次所有进行中的任务（兜底机制）
-- **Webhook 回调**（可选）：content-creator 完成时主动回调 ContentHub（实时，<2秒延迟）
+- **Webhook 回调**（已实施）：content-creator 完成时主动回调 ContentHub（实时，<2秒延迟）
 - **状态查询**：使用 `content-creator status` 命令
 - **结果获取**：状态为 completed 时使用 `content-creator result` 命令
 - **超时检测**：超过30分钟自动标记为超时
 - **BullMQ 队列**：content-creator 内部使用 BullMQ + Redis 管理任务
 
-**Webhook 回调说明**（可选功能，需 content-creator 支持）：
+**Webhook 回调说明**（已实施，实施日期：2026-02-08）：
+
+ContentHub 已实现完整的 Webhook 回调接收功能，与轮询机制互为补充。
+
+**实施状态**：
+- 实施日期：2026-02-08
+- 实施状态：已完成，已通过测试
+- 代码文件：
+  - `/src/backend/app/services/webhook_handler.py` - Webhook 处理服务
+  - `/src/backend/app/utils/webhook_signature.py` - 签名验证工具
+  - `/src/backend/tests/test_webhook_signature.py` - 签名验证测试
+  - `/src/backend/tests/test_webhook_callback_integration.py` - 集成测试
+- 功能特性：
+  - 支持任务完成、失败、进度更新事件
+  - HMAC-SHA256 签名验证（可选）
+  - 自动幂等性处理（避免重复处理）
+  - 完整的错误处理和日志记录
 
 如果 content-creator 实现了 Webhook 回调功能，可以在提交任务时传递回调 URL：
 
@@ -278,6 +294,9 @@ content-creator create \
 - **实时性**：任务完成后立即通知，延迟 < 2 秒
 - **降低负载**：减少轮询请求，节省资源
 - **可靠性**：与轮询机制互为补充，确保任务状态最终一致
+- **安全性**：支持 HMAC-SHA256 签名验证
+
+> **配置说明**：详见 [Webhook 配置指南](../guides/webhook-configuration.md)
 
 > **注意**：Webhook 是可选功能。即使不启用 Webhook，ContentHub 的轮询机制也能保证任务正常完成。
 

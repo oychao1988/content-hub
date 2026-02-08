@@ -48,6 +48,9 @@ class ContentGenerationTask(Base):
     # 自动流程配置
     auto_approve = Column(Boolean, default=True, comment="是否自动审核通过")
 
+    # Webhook 回调配置
+    callback_url = Column(String(500), nullable=True, comment="Webhook 回调 URL")
+
     # 审计字段
     created_at = Column(DateTime(timezone=True), server_default=func.now(), comment="创建时间")
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), comment="更新时间")
