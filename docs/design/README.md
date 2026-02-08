@@ -11,6 +11,10 @@
 | 文档 | 状态 | 实施时间 | 描述 |
 |------|------|----------|------|
 | [system-design.md](system-design.md) | ✅ 已实施 | - | ContentHub 系统设计文档 |
+| [async-content-generation.md](async-content-generation.md) | ✅ 已实施 | 2026-02-08 | 异步内容生成系统设计方案 |
+| [async-content-generation-implementation-plan.md](async-content-generation-implementation-plan.md) | ✅ 已实施 | 2026-02-08 | 异步内容生成实施计划 |
+| [async-content-generation-test-plan.md](async-content-generation-test-plan.md) | ✅ 已实施 | 2026-02-08 | 异步内容生成测试计划 |
+| [content-creator-webhook-integration.md](content-creator-webhook-integration.md) | ✅ 已实施 | 2026-02-08 | content-creator Webhook 集成设计 |
 
 ---
 
