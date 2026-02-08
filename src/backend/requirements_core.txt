@@ -1,0 +1,26 @@
+# 核心依赖
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# 数据库
+sqlalchemy==2.0.25
+alembic==1.13.1
+
+# 任务调度
+apscheduler==3.10.4
+
+# HTTP 客户端
+requests>=2.32.2
+httpx==0.26.0
+
+# 环境变量
+python-dotenv==1.0.0
+
+# 日志
+loguru==0.7.2
+
+# 工具
+python-multipart==0.0.6
+aiofiles==23.2.1
