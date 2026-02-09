@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     CREATOR_CLI_PATH: str = ""
     CREATOR_PROJECT_PATH: Optional[str] = None  # content-creator 项目路径
     CREATOR_WORK_DIR: str = os.path.join(data_dir, "creator-work")
+    CREATOR_MODE: str = "async"  # sync | async - 内容生成模式
 
     # 默认写作风格配置
     DEFAULT_WRITING_STYLE_ID: int = 1  # 默认使用"专业技术风格"（ID 1）
@@ -80,6 +81,26 @@ class Settings(BaseSettings):
     LOG_HTTP_REQUESTS: bool = True
     LOG_PERFORMANCE: bool = False  # 性能日志
     LOG_THIRD_PARTY: bool = False  # 第三方库日志
+
+    # 异步内容生成配置
+    ASYNC_CONTENT_GENERATION_ENABLED: bool = True  # 是否启用异步内容生成
+    ASYNC_MAX_CONCURRENT_TASKS: int = 5  # 最大并发任务数
+    ASYNC_TASK_TIMEOUT: int = 1800  # 任务超时时间（秒）30分钟
+    ASYNC_POLL_INTERVAL: int = 30  # 状态轮询间隔（秒）30秒
+    ASYNC_AUTO_APPROVE: bool = True  # 是否自动审核通过
+    ASYNC_WORKER_COUNT: int = 3  # Worker 进程数
+
+    # Webhook 配置（可选）
+    WEBHOOK_ENABLED: bool = False  # 是否启用 Webhook 通知
+    WEBHOOK_URL: Optional[str] = None  # Webhook 回调 URL
+    WEBHOOK_TIMEOUT: int = 10  # Webhook 请求超时（秒）
+    WEBHOOK_SECRET_KEY: Optional[str] = None  # Webhook 签名密钥
+    WEBHOOK_REQUIRE_SIGNATURE: bool = False  # 是否强制要求签名验证（生产环境推荐启用）
+    WEBHOOK_CALLBACK_BASE_URL: Optional[str] = None  # Webhook 回调基础 URL（外部访问地址）
+
+    # Redis 配置（用于队列和缓存）
+    REDIS_ENABLED: bool = False  # 是否启用 Redis
+    REDIS_URL: str = "redis://localhost:6379/0"  # Redis 连接 URL
 
     model_config = SettingsConfigDict(
         env_file=env_file,

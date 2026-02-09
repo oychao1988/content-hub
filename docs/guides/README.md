@@ -13,6 +13,8 @@
 | [quick-start.md](quick-start.md) | Web 应用快速开始指南 | 新成员 |
 | [cli-quick-start.md](cli-quick-start.md) | CLI 命令行快速开始指南 | 运维/开发人员 |
 | [quick-reference.md](quick-reference.md) | 快速参考手册 | 所有用户 |
+| [async-content-cli-quick-reference.md](async-content-cli-quick-reference.md) | 异步内容生成 CLI 快速参考 | 所有用户 |
+| [async-content-user-guide.md](async-content-user-guide.md) | 异步内容生成系统用户指南 | 所有用户 |
 
 ---
 

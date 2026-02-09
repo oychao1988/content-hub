@@ -53,6 +53,7 @@ class Account(Base):
     publish_config = relationship("PublishConfig", back_populates="account", uselist=False, cascade="all, delete-orphan")
     contents = relationship("Content", back_populates="account", cascade="all, delete-orphan")
     publish_logs = relationship("PublishLog", back_populates="account", cascade="all, delete-orphan")
+    generation_tasks = relationship("ContentGenerationTask", back_populates="account", cascade="all, delete-orphan")
 
     # 索引
     __table_args__ = (

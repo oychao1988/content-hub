@@ -7,6 +7,7 @@ from app.models.platform import Platform
 from app.models.theme import ContentTheme
 from app.models.account import Account, WritingStyle, ContentSection, DataSource, PublishConfig, AccountConfig
 from app.models.content import Content, TopicHistory
+from app.models.content_generation_task import ContentGenerationTask
 from app.models.scheduler import ScheduledTask, TaskExecution
 from app.models.publisher import PublishLog, PublishPool
 from app.models.audit_log import AuditLog
@@ -24,6 +25,7 @@ __all__ = [
     "PublishConfig",
     "Content",
     "TopicHistory",
+    "ContentGenerationTask",
     "ScheduledTask",
     "TaskExecution",
     "PublishLog",
