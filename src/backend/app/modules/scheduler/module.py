@@ -16,7 +16,8 @@ def startup(app):
         WorkflowExecutor,
         AddToPoolExecutor,
         ApproveExecutor,
-        AsyncContentGenerationExecutor
+        AsyncContentGenerationExecutor,
+        PublishPoolScannerExecutor
     )
     from app.db.database import SessionLocal
 
@@ -27,6 +28,7 @@ def startup(app):
     add_to_pool_executor = AddToPoolExecutor()
     approve_executor = ApproveExecutor()
     async_content_gen_executor = AsyncContentGenerationExecutor()
+    publish_pool_scanner = PublishPoolScannerExecutor()
 
     scheduler_service.register_executor(content_gen_executor)
     scheduler_service.register_executor(publishing_executor)
@@ -34,6 +36,7 @@ def startup(app):
     scheduler_service.register_executor(add_to_pool_executor)
     scheduler_service.register_executor(approve_executor)
     scheduler_service.register_executor(async_content_gen_executor)
+    scheduler_service.register_executor(publish_pool_scanner)
 
     log.info(f"已注册执行器: {list(scheduler_service.get_registered_executors().keys())}")
 
