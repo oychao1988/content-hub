@@ -378,6 +378,8 @@ ContentHub 系统当前已注册的执行器：
 | `workflow` | WorkflowExecutor | 编排多个执行步骤 |
 | `add_to_pool` | AddToPoolExecutor | 将内容加入发布池 |
 | `approve` | ApproveExecutor | 审核内容 |
+| `async_content_generation` | AsyncContentGenerationExecutor | 异步内容生成（支持Webhook回调） |
+| `publish_pool_scanner` | PublishPoolScannerExecutor | 扫描发布池并批量自动发布 |
 
 **查看已注册的执行器**：
 
@@ -651,6 +653,148 @@ def startup(app):
 }
 ```
 
+#### PublishPoolScannerExecutor
+
+**功能**: 扫描发布池并批量自动发布待发布内容
+
+**核心特性**:
+- **智能扫描**: 定期扫描发布池中待发布的内容
+- **优先级排序**: 按优先级、计划时间和添加时间排序
+- **时间过滤**: 支持检查未来计划发布的任务
+- **批量处理**: 可配置单次批量发布数量
+- **重试控制**: 自动跳过超过最大重试次数的任务
+- **错误处理**: 单个任务失败不影响其他任务
+
+**参数配置**:
+```python
+{
+    "max_batch_size": 10,          # 单次最大发布数量（默认10）
+    "check_future_tasks": False    # 是否检查未来任务（默认false）
+}
+```
+
+**执行流程**:
+```
+┌─────────────────────────────────────────────────────────┐
+│ PublishPoolScannerExecutor.execute()                      │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  1. 获取待发布任务                                       │
+│     ├── 查询状态为 pending 的任务                        │
+│     ├── 按优先级降序、计划时间升序排序                   │
+│     └── 限制数量为 max_batch_size                        │
+│                                                          │
+│  2. 遍历执行发布                                         │
+│     └── 对每个任务:                                     │
+│         a. 检查重试次数                                 │
+│         b. 调用 PublishingExecutor                      │
+│         c. 记录执行结果                                 │
+│         d. 更新失败任务的重试次数                       │
+│                                                          │
+│  3. 返回汇总结果                                         │
+│     ├── pending_count: 待发布总数                       │
+│     ├── published_count: 成功发布数                     │
+│     ├── failed_count: 失败数量                          │
+│     └── results: 详细结果列表                           │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+**查询逻辑**:
+```python
+# 基础查询
+query = db.query(PublishPool).filter(PublishPool.status == "pending")
+
+# 时间过滤（可选）
+if not check_future_tasks:
+    query = query.filter(
+        (PublishPool.scheduled_at == None) |
+        (PublishPool.scheduled_at <= datetime.now())
+    )
+
+# 排序规则
+query = query.order_by(
+    PublishPool.priority.desc(),      # 优先级高的优先
+    PublishPool.scheduled_at.asc(),   # 计划时间早的优先
+    PublishPool.added_at.asc()        # 添加时间早的优先
+)
+
+# 数量限制
+query = query.limit(max_batch_size)
+```
+
+**返回数据示例**:
+```json
+{
+    "success": true,
+    "message": "发布池扫描完成: 扫描 3 个任务, 成功 2 个, 失败 1 个",
+    "data": {
+        "scanned": true,
+        "pending_count": 3,
+        "published_count": 2,
+        "failed_count": 1,
+        "results": [
+            {
+                "pool_id": 1,
+                "content_id": 101,
+                "success": true,
+                "message": "发布成功"
+            },
+            {
+                "pool_id": 2,
+                "content_id": 102,
+                "success": true,
+                "message": "发布成功"
+            },
+            {
+                "pool_id": 3,
+                "content_id": 103,
+                "success": false,
+                "error": "API调用失败"
+            }
+        ]
+    }
+}
+```
+
+**定时任务配置示例**:
+```python
+# 通过数据库或API创建定时任务
+task = ScheduledTask(
+    name="发布池自动扫描",
+    description="定期扫描发布池并批量发布待发布内容",
+    task_type="publish_pool_scanner",
+    params={
+        "max_batch_size": 10,
+        "check_future_tasks": True
+    },
+    cron_expression="*/5 * * * *",  # 每5分钟执行一次
+    is_active=True
+)
+```
+
+**使用场景**:
+- **定时批量发布**: 每隔几分钟自动扫描发布池并批量发布
+- **高峰期避开**: 设置 `scheduled_at` 在非高峰期自动发布
+- **优先级控制**: 高优先级内容优先发布
+- **容错机制**: 单个任务失败不影响其他任务
+
+**单元测试**:
+```bash
+# 运行 PublishPoolScannerExecutor 测试
+pytest tests/test_publish_pool_scanner_executor.py -v
+```
+
+测试覆盖：
+- ✅ 执行器类型验证
+- ✅ 参数验证（默认和自定义）
+- ✅ 查询逻辑（空结果、有结果、优先级排序、时间过滤、批量限制）
+- ✅ 执行逻辑（无任务、全部成功、部分成功、全部失败）
+- ✅ 重试机制（超过最大重试次数）
+- ✅ 异常处理
+- ✅ 自定义批量大小
+- ✅ 未来任务检查
+
 ## 文件位置
 
 - 核心实现: `/Users/Oychao/Documents/Projects/content-hub/src/backend/app/services/scheduler_service.py`
@@ -658,6 +802,8 @@ def startup(app):
 - 工作流执行器: `/Users/Oychao/Documents/Projects/content-hub/src/backend/app/services/executors/workflow_executor.py`
 - 加入发布池执行器: `/Users/Oychao/Documents/Projects/content-hub/src/backend/app/services/executors/add_to_pool_executor.py`
 - 审核执行器: `/Users/Oychao/Documents/Projects/content-hub/src/backend/app/services/executors/approve_executor.py`
+- 发布池扫描执行器: `/Users/Oychao/Documents/Projects/content-hub/src/backend/app/services/executors/publish_pool_scanner_executor.py`
+- 单元测试: `/Users/Oychao/Documents/Projects/content-hub/src/backend/tests/test_publish_pool_scanner_executor.py`
 - 本文档: `/Users/Oychao/Documents/Projects/content-hub/src/backend/docs/design/scheduler-system-design.md`
 
 ## 相关文档
