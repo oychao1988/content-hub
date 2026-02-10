@@ -48,7 +48,12 @@ class Settings(BaseSettings):
     PUBLISHER_API_URL: str = "http://150.158.88.23:3010"
     PUBLISHER_API_KEY: str = ""
 
-    # Content-Creator CLI 配置
+    # Content-Creator API 配置（HTTP API）
+    CREATOR_API_BASE_URL: str = "http://localhost:18100"  # content-creator API 基础地址
+    CREATOR_API_TIMEOUT: int = 300  # API 请求超时时间（秒，5分钟）
+    CREATOR_API_MAX_RETRIES: int = 2  # API 请求失败最大重试次数
+
+    # Content-Creator CLI 配置（已废弃，保留兼容性）
     CREATOR_CLI_PATH: str = ""
     CREATOR_PROJECT_PATH: Optional[str] = None  # content-creator 项目路径
     CREATOR_WORK_DIR: str = os.path.join(data_dir, "creator-work")
