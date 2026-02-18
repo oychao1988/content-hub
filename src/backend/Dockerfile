@@ -27,9 +27,15 @@ RUN pip install --upgrade pip && \
 # 复制应用代码
 COPY . .
 
+# 复制并设置启动脚本
+COPY scripts/start.sh /app/scripts/start.sh
+COPY scripts/init_scheduler.py /app/scripts/init_scheduler.py
+RUN chmod +x /app/scripts/start.sh && \
+    chmod +x /app/scripts/init_scheduler.py
+
 # 创建数据目录并设置权限
-RUN mkdir -p /app/data /app/logs && \
-    chmod -R 755 /app/data /app/logs
+RUN mkdir -p /app/data /app/logs /app/scripts && \
+    chmod -R 755 /app/data /app/logs /app/scripts
 
 # 暴露端口
 EXPOSE 18010
@@ -38,11 +44,5 @@ EXPOSE 18010
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:18010/docs', timeout=5)"
 
-# 使用 gunicorn 启动应用
-CMD ["gunicorn", "main:app", \
-     "-w", "4", \
-     "-k", "uvicorn.workers.UvicornWorker", \
-     "-b", "0.0.0.0:18010", \
-     "--access-logfile", "/app/logs/access.log", \
-     "--error-logfile", "/app/logs/error.log", \
-     "--log-level", "info"]
+# 使用启动脚本（自动初始化调度器）
+CMD ["/app/scripts/start.sh"]
