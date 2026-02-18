@@ -3,8 +3,8 @@ export default {
   // API 基础地址
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:18010',
 
-  // API 版本
-  apiVersion: '/api/v1',
+  // API 版本（注意：不包含 /api 前缀，因为 VITE_API_BASE_URL 已经包含了）
+  apiVersion: '/v1',
 
   // 请求超时时间（毫秒）
   timeout: 30000,
