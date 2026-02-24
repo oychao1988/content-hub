@@ -92,3 +92,19 @@ async def stop_scheduler(db: Session = Depends(get_db), current_user = Depends(g
 async def get_scheduler_status(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """获取调度器状态"""
     return scheduler_manager_service.get_scheduler_status()
+
+@router.post("/reload")
+@require_permission(Permission.SCHEDULER_EXECUTE)
+async def reload_scheduler(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    重新加载调度器中的所有任务
+
+    此操作会：
+    1. 清除调度器中的所有现有任务
+    2. 从数据库重新加载所有启用的任务
+
+    通常在以下情况使用：
+    - 直接修改数据库后需要同步调度器
+    - 调度器状态异常需要重置
+    """
+    return scheduler_manager_service.reload_tasks(db)

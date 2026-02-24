@@ -65,6 +65,29 @@ class SchedulerManagerService:
         db.add(task)
         db.commit()
         db.refresh(task)
+
+        # 动态添加到调度器（如果任务已启用）
+        if task.is_active:
+            try:
+                # 使用独立的数据库会话来注册任务，避免会话冲突
+                from app.db.database import SessionLocal
+                register_db = SessionLocal()
+                try:
+                    # 重新查询任务以获取新的会话中的对象
+                    task_for_register = register_db.query(ScheduledTask).filter(
+                        ScheduledTask.id == task.id
+                    ).first()
+                    if task_for_register:
+                        scheduler_service.register_scheduled_task(register_db, task_for_register)
+                        from app.utils.custom_logger import log
+                        log.info(f"新任务已动态添加到调度器: {task.name} (ID: {task.id})")
+                finally:
+                    register_db.close()
+            except Exception as e:
+                from app.utils.custom_logger import log
+                log.error(f"添加任务到调度器失败: {str(e)}")
+                # 不影响任务创建，只记录错误
+
         return task
 
     @staticmethod
@@ -72,10 +95,40 @@ class SchedulerManagerService:
         """更新定时任务"""
         task = db.query(ScheduledTask).filter(ScheduledTask.id == task_id).first()
         if task:
+            # 记录旧状态
+            was_active = task.is_active
+
+            # 更新任务数据
             for key, value in task_data.items():
                 setattr(task, key, value)
             db.commit()
             db.refresh(task)
+
+            # 动态更新调度器中的任务
+            from app.utils.custom_logger import log
+            try:
+                # 使用独立的数据库会话来注册任务
+                from app.db.database import SessionLocal
+                register_db = SessionLocal()
+                try:
+                    task_for_register = register_db.query(ScheduledTask).filter(
+                        ScheduledTask.id == task.id
+                    ).first()
+
+                    if task_for_register:
+                        if task.is_active:
+                            # 任务启用或更新时重新注册
+                            scheduler_service.register_scheduled_task(register_db, task_for_register)
+                            log.info(f"任务已更新并重新注册到调度器: {task.name} (ID: {task.id})")
+                        elif was_active and not task.is_active:
+                            # 任务从启用变为禁用时，从调度器移除
+                            scheduler_service.unregister_task(task.id)
+                            log.info(f"任务已禁用并从调度器移除: {task.name} (ID: {task.id})")
+                finally:
+                    register_db.close()
+            except Exception as e:
+                log.error(f"更新调度器任务失败: {str(e)}")
+
         return task
 
     @staticmethod
@@ -83,8 +136,18 @@ class SchedulerManagerService:
         """删除定时任务"""
         task = db.query(ScheduledTask).filter(ScheduledTask.id == task_id).first()
         if task:
+            task_name = task.name
             db.delete(task)
             db.commit()
+
+            # 从调度器中移除任务
+            from app.utils.custom_logger import log
+            try:
+                scheduler_service.unregister_task(task_id)
+                log.info(f"任务已从调度器移除: {task_name} (ID: {task_id})")
+            except Exception as e:
+                log.error(f"从调度器移除任务失败: {str(e)}")
+
             return True
         return False
 
@@ -191,6 +254,51 @@ class SchedulerManagerService:
             "running": scheduler_service.scheduler.running,
             "jobs_count": len(scheduler_service.scheduler.get_jobs())
         }
+
+    @staticmethod
+    def reload_tasks(db: Session) -> dict:
+        """
+        重新加载调度器中的所有任务
+
+        此方法会：
+        1. 清除调度器中的所有现有任务
+        2. 从数据库重新加载所有启用的任务
+
+        Args:
+            db: 数据库会话
+
+        Returns:
+            dict: 包含重载结果的字典
+        """
+        from app.utils.custom_logger import log
+
+        try:
+            # 获取当前调度器中的任务
+            existing_jobs = scheduler_service.scheduler.get_jobs()
+            job_ids = [job.id for job in existing_jobs]
+
+            # 移除所有现有任务
+            for job_id in job_ids:
+                scheduler_service.scheduler.remove_job(job_id)
+
+            # 重新加载任务
+            loaded_count = scheduler_service.load_tasks_from_db(db)
+
+            log.info(f"调度器任务重载完成: 移除了 {len(job_ids)} 个旧任务, 加载了 {loaded_count} 个新任务")
+
+            return {
+                "success": True,
+                "message": f"已重新加载 {loaded_count} 个任务",
+                "removed_count": len(job_ids),
+                "loaded_count": loaded_count
+            }
+
+        except Exception as e:
+            log.error(f"重载调度器任务失败: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
 
 
 # 全局服务实例
