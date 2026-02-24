@@ -1,17 +1,15 @@
 """
 异步内容生成服务
-负责提交异步生成任务、查询任务状态、管理任务生命周期
+负责提交异步生成任务、查询任务状态、管理任务生命周期（使用 HTTP API）
 """
-import subprocess
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.exceptions import (
-    CreatorCLINotFoundException,
     CreatorException,
     InvalidStateException,
     ResourceNotFoundException
@@ -19,10 +17,11 @@ from app.core.exceptions import (
 from app.db.database import SessionLocal
 from app.models import ContentGenerationTask, Account
 from app.utils.custom_logger import log
+from app.services.creator_api_client import get_creator_api_client
 
 
 class AsyncContentGenerationService:
-    """异步内容生成服务"""
+    """异步内容生成服务（使用 HTTP API）"""
 
     # 默认超时时间（30分钟）
     DEFAULT_TIMEOUT_MINUTES = 30
@@ -35,6 +34,7 @@ class AsyncContentGenerationService:
             db: 数据库会话（可选，如果未提供则创建新会话）
         """
         self.db = db or SessionLocal()
+        self.api_client = get_creator_api_client()
 
     def submit_task(
         self,
@@ -65,7 +65,7 @@ class AsyncContentGenerationService:
 
         Raises:
             ResourceNotFoundException: 账号不存在
-            CreatorException: CLI调用失败
+            CreatorException: API调用失败
         """
         # 验证账号存在
         account = self.db.query(Account).filter(Account.id == account_id).first()
@@ -96,7 +96,7 @@ class AsyncContentGenerationService:
 
         log.info(f"Created async generation task: {task_id} for account {account_id}")
 
-        # 提交任务到 content-creator CLI（异步模式）
+        # 提交任务到 content-creator HTTP API（异步模式）
         try:
             self._submit_to_creator(task)
         except Exception as e:
@@ -110,43 +110,30 @@ class AsyncContentGenerationService:
 
     def _submit_to_creator(self, task: ContentGenerationTask):
         """
-        将任务提交到 content-creator CLI
+        将任务提交到 content-creator HTTP API
 
         Args:
             task: 任务对象
 
         Raises:
-            CreatorCLINotFoundException: CLI不存在
-            CreatorException: CLI调用失败
+            CreatorException: API调用失败
         """
-        if not settings.CREATOR_CLI_PATH:
-            raise CreatorCLINotFoundException("CREATOR_CLI_PATH 未配置")
+        # 检查 API 配置
+        if not settings.CREATOR_API_BASE_URL:
+            raise CreatorException("CREATOR_API_BASE_URL 未配置")
 
-        # 构建命令参数
-        command = [
-            settings.CREATOR_CLI_PATH,
-            "create",
-            "--type", "content-creator",
-            "--mode", "async",  # 异步模式
-            "--topic", task.topic,
-            "--task-id", task.task_id
-        ]
-
-        # 可选参数
-        if task.requirements:
-            command.extend(["--requirements", task.requirements])
-        if task.tone:
-            command.extend(["--tone", task.tone])
+        # 处理关键词（从逗号分隔的字符串转换为列表）
+        keywords_list = None
         if task.keywords:
-            command.extend(["--keywords", task.keywords])
+            keywords_list = [k.strip() for k in task.keywords.split(",") if k.strip()]
 
         # 处理 Webhook 回调 URL
+        callback_url = None
         if settings.WEBHOOK_ENABLED:
             # 构造回调 URL
             base_url = getattr(settings, 'WEBHOOK_CALLBACK_BASE_URL', None)
             if not base_url:
                 # 如果没有配置 WEBHOOK_CALLBACK_BASE_URL，使用默认构造
-                # 注意：这里使用 HOST 和 PORT，但建议在生产环境配置 WEBHOOK_CALLBACK_BASE_URL
                 base_url = f"http://{settings.HOST}:{settings.PORT}"
 
             callback_url = f"{base_url}/api/v1/content/callback/{task.task_id}"
@@ -155,23 +142,22 @@ class AsyncContentGenerationService:
             task.callback_url = callback_url
             self.db.commit()
 
-            # 添加到 CLI 命令
-            command.extend(["--callback-url", callback_url])
-
             log.info(f"Webhook callback enabled for task {task.task_id}: {callback_url}")
         else:
             log.info(f"Webhook callback disabled for task {task.task_id}")
 
-        log.info(f"Submitting task to creator: {task.task_id}")
-        log.debug(f"Command arguments: {' '.join(command)}")
+        log.info(f"Submitting task to creator API: {task.task_id}")
 
         try:
-            result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=30  # 提交超时30秒
+            # 调用 HTTP API 创建异步任务
+            result = self.api_client.create_task_async(
+                topic=task.topic,
+                task_id=task.task_id,
+                requirements=task.requirements,
+                tone=task.tone,
+                keywords=keywords_list,
+                callback_url=callback_url,
+                priority=task.priority,
             )
 
             # 更新任务状态为已提交
@@ -179,21 +165,11 @@ class AsyncContentGenerationService:
             task.submitted_at = datetime.utcnow()
             self.db.commit()
 
-            log.info(f"Task {task.task_id} submitted successfully")
+            log.info(f"Task {task.task_id} submitted successfully to API")
 
-        except subprocess.CalledProcessError as e:
-            error_msg = e.stderr or str(e)
-            log.error(f"Failed to submit task {task.task_id}: {error_msg}")
-            raise CreatorException(
-                message=f"提交任务到 CLI 失败: {error_msg}",
-                details={"return_code": e.returncode}
-            )
-        except subprocess.TimeoutExpired:
-            log.error(f"Timeout submitting task {task.task_id}")
-            raise CreatorException(
-                message="提交任务超时",
-                details={"timeout": 30}
-            )
+        except CreatorException as e:
+            log.error(f"Failed to submit task {task.task_id}: {str(e)}")
+            raise
 
     def get_task_status(self, task_id: str) -> Optional[Dict]:
         """
@@ -226,6 +202,44 @@ class AsyncContentGenerationService:
             "error": task.error_message,
             "content_id": task.content_id
         }
+
+    def check_task_status_from_api(self, task_id: str) -> Dict[str, Any]:
+        """
+        从 content-creator API 查询任务最新状态
+
+        Args:
+            task_id: 任务ID
+
+        Returns:
+            API 返回的任务状态字典
+
+        Raises:
+            CreatorException: API调用失败
+        """
+        try:
+            return self.api_client.get_task_status(task_id)
+        except CreatorException as e:
+            log.error(f"Failed to check task status from API: {str(e)}")
+            raise
+
+    def get_task_result_from_api(self, task_id: str) -> Dict[str, Any]:
+        """
+        从 content-creator API 获取任务结果
+
+        Args:
+            task_id: 任务ID
+
+        Returns:
+            API 返回的任务结果字典
+
+        Raises:
+            CreatorException: API调用失败或任务未完成
+        """
+        try:
+            return self.api_client.get_task_result(task_id)
+        except CreatorException as e:
+            log.error(f"Failed to get task result from API: {str(e)}")
+            raise
 
     def list_tasks(
         self,
@@ -283,14 +297,82 @@ class AsyncContentGenerationService:
                 required_state="pending or submitted"
             )
 
-        # 更新任务状态
-        task.status = "cancelled"
-        task.completed_at = datetime.utcnow()
-        self.db.commit()
+        try:
+            # 调用 API 取消任务
+            self.api_client.cancel_task(task_id)
 
-        log.info(f"Task {task_id} cancelled")
+            # 更新任务状态
+            task.status = "cancelled"
+            task.completed_at = datetime.utcnow()
+            self.db.commit()
+
+            log.info(f"Task {task_id} cancelled via API")
+
+        except CreatorException as e:
+            log.warning(f"Failed to cancel task via API: {str(e)}, marking as cancelled locally")
+            # 即使 API 调用失败，也标记本地任务为取消状态
+            task.status = "cancelled"
+            task.completed_at = datetime.utcnow()
+            self.db.commit()
 
         return True
+
+    def retry_task(self, task_id: str) -> str:
+        """
+        重试失败的任务
+
+        Args:
+            task_id: 任务ID
+
+        Returns:
+            新任务ID
+
+        Raises:
+            CreatorException: 重试失败
+        """
+        task = self.db.query(ContentGenerationTask).filter_by(task_id=task_id).first()
+
+        if not task:
+            raise ResourceNotFoundException("任务", resource_id=task_id)
+
+        if task.status != "failed":
+            raise InvalidStateException(
+                message=f"只有失败的任务可以重试，当前状态: {task.status}",
+                current_state=task.status,
+                required_state="failed"
+            )
+
+        try:
+            # 调用 API 重试任务
+            result = self.api_client.retry_task(task_id)
+
+            # 创建新的任务记录
+            new_task_id = f"task-{uuid.uuid4().hex[:12]}"
+            new_task = ContentGenerationTask(
+                task_id=new_task_id,
+                account_id=task.account_id,
+                topic=task.topic,
+                keywords=task.keywords,
+                category=task.category,
+                requirements=task.requirements,
+                tone=task.tone,
+                status="submitted",
+                priority=task.priority,
+                auto_approve=task.auto_approve,
+                retry_count=task.retry_count + 1,
+                timeout_at=datetime.utcnow() + timedelta(minutes=self.DEFAULT_TIMEOUT_MINUTES)
+            )
+
+            self.db.add(new_task)
+            self.db.commit()
+
+            log.info(f"Task {task_id} retried as {new_task_id}")
+
+            return new_task_id
+
+        except CreatorException as e:
+            log.error(f"Failed to retry task {task_id}: {str(e)}")
+            raise
 
     def get_task_by_id(self, task_id: str) -> Optional[ContentGenerationTask]:
         """

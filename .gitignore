@@ -70,3 +70,12 @@ htmlcov/
 *.bak
 *.swp
 *~.nib
+
+# Temporary reports
+*-REPORT.md
+*-SUMMARY.md
+!CLAUDE.md
+
+# Deployment artifacts
+*.tar
+*.tar.gz

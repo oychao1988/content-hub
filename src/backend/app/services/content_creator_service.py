@@ -1,303 +1,54 @@
 """
 内容生成服务
-负责调用 content-creator CLI 生成内容
+负责调用 content-creator HTTP API 生成内容
 """
-import subprocess
 import json
-import os
-import time
-import re
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from app.core.config import settings
 from app.core.exceptions import (
-    CreatorCLINotFoundException,
     CreatorTimeoutException,
     CreatorInvalidResponseException,
     CreatorException
 )
 from app.utils.custom_logger import log
+from app.services.creator_api_client import get_creator_api_client
 
 
 class ContentCreatorService:
-    """内容生成服务"""
+    """内容生成服务（使用 HTTP API）"""
 
     # 默认超时时间（秒）
-    # content-creator CLI 通常需要 3-5 分钟完成
+    # content-creator API 通常需要 3-5 分钟完成
     DEFAULT_TIMEOUT = 300  # 5分钟
     COVER_TIMEOUT = 60
-
-    # 最大重试次数
-    MAX_RETRIES = 2
 
     # ContentHub 图片目录（目标路径）
     CONTENTHUB_IMAGES_DIR = "data/images"
 
     @staticmethod
-    def _get_creator_project_path() -> str:
+    def _convert_image_urls(image_urls: list) -> list:
         """
-        获取 content-creator 项目路径
+        将 content-creator 返回的图片 URL 转换为本地路径
 
-        :return: content-creator 项目路径
-        """
-        # 优先从配置读取
-        if settings.CREATOR_PROJECT_PATH:
-            return settings.CREATOR_PROJECT_PATH
-
-        # 尝试从环境变量读取
-        creator_path = os.environ.get('CREATOR_PROJECT_PATH')
-        if creator_path:
-            return creator_path
-
-        # 尝试从包装脚本中推断路径
-        if os.path.exists(settings.CREATOR_CLI_PATH):
-            try:
-                with open(settings.CREATOR_CLI_PATH, 'r') as f:
-                    content = f.read()
-                    # 从包装脚本中提取 cd 命令的路径
-                    import re
-                    cd_match = re.search(r'cd\s+([^\s]+)', content)
-                    if cd_match:
-                        log.info(f"Inferred CREATOR_PROJECT_PATH from CLI wrapper script: {cd_match.group(1)}")
-                        return cd_match.group(1)
-            except Exception as e:
-                log.warning(f"Failed to read CLI wrapper script: {str(e)}")
-
-        # 未配置，使用相对路径
-        log.warning("CREATOR_PROJECT_PATH not configured, image copying may not work properly")
-        return "."
-
-    @staticmethod
-    def _copy_images_to_contenthub(image_paths: list) -> list:
-        """
-        将图片从 content-creator 项目复制到 ContentHub 项目
-
-        :param image_paths: content-creator 返回的图片路径列表（相对路径）
+        :param image_urls: content-creator 返回的图片 URL 列表
         :return: ContentHub 中的图片路径列表
         """
-        import shutil
-        from pathlib import Path
-
+        # 如果图片 URL 是完整的 HTTP URL，保留原样
+        # 如果是相对路径，需要从 content-creator 下载
         converted_paths = []
 
-        # 获取 content-creator 项目路径
-        creator_project_path = ContentCreatorService._get_creator_project_path()
-        log.info(f"Using creator project path: {creator_project_path}")
-
-        # 确保 ContentHub 图片目录存在
-        contenthub_images_dir = Path(ContentCreatorService.CONTENTHUB_IMAGES_DIR)
-        contenthub_images_dir.mkdir(parents=True, exist_ok=True)
-
-        for img_path in image_paths:
-            # 构造源图片的绝对路径（content-creator 项目）
-            source_path = Path(creator_project_path) / img_path
-
-            # 如果源文件存在，复制到 ContentHub
-            if source_path.exists():
-                filename = source_path.name
-                dest_path = contenthub_images_dir / filename
-
-                try:
-                    # 复制文件
-                    shutil.copy2(source_path, dest_path)
-                    # 返回 ContentHub 中的相对路径
-                    converted_paths.append(f"{ContentCreatorService.CONTENTHUB_IMAGES_DIR}/{filename}")
-                    log.info(f"Copied image: {filename}")
-                except Exception as e:
-                    log.warning(f"Failed to copy image {filename}: {str(e)}")
-                    # 保留原路径（即使复制失败）
-                    converted_paths.append(img_path)
+        for url in image_urls:
+            if url.startswith("http://") or url.startswith("https://"):
+                # HTTP URL：保留原样，或者可以下载到本地
+                # 这里暂时保留原 URL，由调用方决定是否下载
+                converted_paths.append(url)
             else:
-                log.warning(f"Source image not found: {source_path}")
-                # 保留原路径
-                converted_paths.append(img_path)
+                # 相对路径：可能需要从 content-creator 项目复制
+                # 但由于现在使用 HTTP API，图片应该都是 URL
+                log.warning(f"Non-URL image path: {url}")
+                converted_paths.append(url)
 
         return converted_paths
-
-    @staticmethod
-    def _parse_cli_output(stdout: str) -> Dict[str, Any]:
-        """
-        解析 content-creator CLI 的文本输出
-
-        :param stdout: CLI 标准输出
-        :return: 解析后的数据字典
-        :raises: CreatorInvalidResponseException
-        """
-        try:
-            # 初始化结果字典
-            result = {
-                "success": False,
-                "task_id": None,
-                "status": None,
-                "duration": None,
-                "content": None,
-                "images": [],
-                "quality_score": None,
-                "quality_passed": None
-            }
-
-            # 提取任务ID
-            task_id_match = re.search(r'任务ID:\s*(\S+)', stdout)
-            if task_id_match:
-                result["task_id"] = task_id_match.group(1)
-
-            # 提取状态
-            status_match = re.search(r'状态:\s*(\S+)', stdout)
-            if status_match:
-                result["status"] = status_match.group(1)
-                if "完成" in result["status"] or "completed" in result["status"].lower():
-                    result["success"] = True
-
-            # 提取耗时（格式：3分23秒 或 23秒）
-            duration_match = re.search(r'耗时:\s*((\d+)分)?(\d+)秒', stdout)
-            if duration_match:
-                minutes = int(duration_match.group(2)) if duration_match.group(2) else 0
-                seconds = int(duration_match.group(3))
-                result["duration"] = minutes * 60 + seconds
-                log.info(f"Extracted duration: {minutes}m {seconds}s = {result['duration']}s")
-
-            # 提取生成的内容（在 "📝 生成的内容:" 和下一个分隔符之间）
-            content_match = re.search(
-                r'📝 生成的内容:.*?────────────────────────────────────────\n(.*?)\n────────────────────────────────────────',
-                stdout,
-                re.DOTALL
-            )
-            if content_match:
-                content = content_match.group(1).strip()
-                result["content"] = content
-                log.info(f"Extracted content length: {len(content)} characters")
-
-            # 提取图片列表（在 "🖼️ 生成的配图:" 部分）
-            images_section = re.search(
-                r'🖼️ 生成的配图:.*?────────────────────────────────────────\n(.*?)\n────────────────────────────────────────',
-                stdout,
-                re.DOTALL
-            )
-            if images_section:
-                images_text = images_section.group(1).strip()
-                # 提取所有图片路径
-                image_paths = re.findall(r'(data/images/[^\s]+)', images_text)
-
-                # 复制图片到 ContentHub 目录并转换路径
-                converted_paths = ContentCreatorService._copy_images_to_contenthub(image_paths)
-
-                result["images"] = converted_paths
-                log.info(f"Extracted and copied {len(converted_paths)} images")
-
-            # 提取文本质检信息
-            quality_match = re.search(r'🔍 文本质检:.*?状态:\s*(\S+).*?评分:\s*([\d.]+)', stdout, re.DOTALL)
-            if quality_match:
-                result["quality_passed"] = "通过" in quality_match.group(1) or "passed" in quality_match.group(1).lower()
-                try:
-                    result["quality_score"] = float(quality_match.group(2))
-                except ValueError:
-                    pass
-
-            # 验证必要字段
-            if not result["content"]:
-                log.error(f"Failed to extract content from CLI output. Output preview: {stdout[:500]}")
-                raise CreatorInvalidResponseException("无法从CLI输出中提取内容")
-
-            if not result["success"]:
-                log.warning(f"CLI task may not have completed successfully. Status: {result.get('status')}")
-
-            return result
-
-        except Exception as e:
-            log.error(f"Error parsing CLI output: {str(e)}\nOutput preview: {stdout[:500]}")
-            raise CreatorInvalidResponseException(f"解析CLI输出失败: {str(e)}")
-
-    @staticmethod
-    def _run_cli_command(
-        command: list,
-        timeout: int,
-        retries: int = 0
-    ) -> Dict[str, Any]:
-        """
-        执行 CLI 命令并处理错误
-
-        :param command: 命令列表
-        :param timeout: 超时时间（秒）
-        :param retries: 当前重试次数
-        :return: 解析后的响应数据（从文本输出提取）
-        :raises: CreatorException 及其子类
-        """
-        cli_path = command[0]
-
-        # 检查 CLI 是否存在
-        if not os.path.exists(cli_path):
-            log.error(f"Creator CLI not found at: {cli_path}")
-            raise CreatorCLINotFoundException(cli_path)
-
-        try:
-            log.info(f"Executing Creator CLI: {' '.join(command)}")
-
-            start_time = time.time()
-
-            # 设置环境变量，确保使用CLI模式和debug日志
-            env = os.environ.copy()
-            env['LLM_SERVICE_TYPE'] = 'cli'
-            env['LOG_LEVEL'] = 'info'
-
-            result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=timeout,
-                env=env
-            )
-            elapsed_time = time.time() - start_time
-
-            log.info(f"Creator CLI completed in {elapsed_time:.2f}s")
-
-            # 解析文本输出（content-creator CLI 输出纯文本，不是JSON）
-            return ContentCreatorService._parse_cli_output(result.stdout)
-
-        except subprocess.TimeoutExpired as e:
-            elapsed_time = time.time() - start_time
-            log.error(f"Creator CLI timeout after {elapsed_time:.2f}s (limit: {timeout}s)")
-
-            # 如果还有重试次数，则重试
-            if retries < ContentCreatorService.MAX_RETRIES:
-                log.warning(f"Retrying Creator CLI command (attempt {retries + 1}/{ContentCreatorService.MAX_RETRIES})")
-                time.sleep(2 ** retries)  # 指数退避：1s, 2s, 4s
-                return ContentCreatorService._run_cli_command(command, timeout, retries + 1)
-
-            raise CreatorTimeoutException(timeout)
-
-        except subprocess.CalledProcessError as e:
-            error_details = {
-                "return_code": e.returncode,
-                "stderr": e.stderr[:500] if e.stderr else "No error output",
-                "stdout": e.stdout[:500] if e.stdout else "No output",
-                "command": ' '.join(command)
-            }
-
-            # 如果还有重试次数且错误是可重试的，则重试
-            is_retryable = e.returncode in [1, 2, 130]  # 1=通用错误, 2=误用, 130=SIGINT
-            if retries < ContentCreatorService.MAX_RETRIES and is_retryable:
-                log.warning(
-                    f"Creator CLI failed with code {e.returncode}, "
-                    f"retrying (attempt {retries + 1}/{ContentCreatorService.MAX_RETRIES})"
-                )
-                time.sleep(2 ** retries)  # 指数退避
-                return ContentCreatorService._run_cli_command(command, timeout, retries + 1)
-
-            log.error(f"Creator CLI execution failed: {error_details}")
-            raise CreatorException(
-                message=f"内容生成失败 (返回码: {e.returncode})",
-                details=error_details
-            )
-
-        except CreatorException:
-            # 重新抛出已知的 Creator 异常
-            raise
-        except Exception as e:
-            log.exception(f"Unexpected error executing Creator CLI: {str(e)}")
-            raise CreatorException(
-                message=f"执行内容生成时发生意外错误: {str(e)}",
-                details={"error_type": type(e).__name__}
-            )
 
     @staticmethod
     def create_content(
@@ -310,7 +61,7 @@ class ContentCreatorService:
         db: Optional['Session'] = None
     ) -> dict:
         """
-        调用 content-creator CLI 生成内容（支持读取账号配置）
+        调用 content-creator HTTP API 生成内容（支持读取账号配置）
 
         :param topic: 文章主题
         :param requirements: 创作要求（字数、结构等）
@@ -321,8 +72,9 @@ class ContentCreatorService:
         :param db: 数据库会话（用于读取账号配置）
         :return: 生成的内容信息
         """
-        if not settings.CREATOR_CLI_PATH:
-            raise CreatorCLINotFoundException("CREATOR_CLI_PATH 未配置")
+        # 检查 API 配置
+        if not settings.CREATOR_API_BASE_URL:
+            raise CreatorException("CREATOR_API_BASE_URL 未配置")
 
         # 读取账号配置
         account_config = {}
@@ -383,59 +135,66 @@ class ContentCreatorService:
             requirements = enhanced_requirements
             log.info(f"Enhanced requirements with account config")
 
-        # 构建命令参数
-        command = [
-            settings.CREATOR_CLI_PATH,
-            "create",
-            "--type", "content-creator",  # 使用标准工作流，不是agent模式
-            "--mode", "sync",              # 同步模式，等待结果
-            "--topic", topic,
-            "--requirements", requirements,
-            "--target-audience", target_audience,
-            "--tone", tone,
-            "--priority", "normal"
-        ]
+        # 构建硬性约束（从写作风格配置中提取）
+        hard_constraints = None
+        if account_id and db:
+            account = db.query(Account).filter(Account.id == account_id).first()
+            if account and account.writing_style:
+                ws = account.writing_style
+                hard_constraints = {
+                    "minWords": ws.min_words,
+                    "maxWords": ws.max_words,
+                }
+                if ws.forbidden_words:
+                    hard_constraints["keywords"] = ws.forbidden_words
 
         log.info(f"Generating content with account config: topic='{topic}', tone='{tone}'")
 
-        # 执行命令并解析输出
-        result = ContentCreatorService._run_cli_command(
-            command,
-            timeout=ContentCreatorService.DEFAULT_TIMEOUT
-        )
+        # 获取 API 客户端
+        client = get_creator_api_client()
 
-        return result
+        try:
+            # 调用 HTTP API 创建同步任务
+            result = client.create_task_sync(
+                topic=topic,
+                requirements=requirements,
+                target_audience=target_audience,
+                tone=tone,
+                hard_constraints=hard_constraints,
+            )
+
+            # 转换图片 URL
+            if result.get("images"):
+                result["images"] = ContentCreatorService._convert_image_urls(result["images"])
+
+            return result
+
+        except CreatorException:
+            raise
+        except Exception as e:
+            log.exception(f"Unexpected error in create_content: {str(e)}")
+            raise CreatorException(
+                message=f"生成内容时发生意外错误: {str(e)}",
+                details={"error_type": type(e).__name__}
+            )
 
     @staticmethod
     def generate_cover_image(topic: str) -> str:
         """
         生成封面图片
 
+        注意：此功能当前未在 content-creator HTTP API 中实现
+        保留此方法以保持向后兼容性
+
         :param topic: 选题
         :return: 图片路径
+        :raises: CreatorException - 功能暂未实现
         """
-        if not settings.CREATOR_CLI_PATH:
-            raise CreatorCLINotFoundException("CREATOR_CLI_PATH 未配置")
-
-        command = [
-            settings.CREATOR_CLI_PATH,
-            "generate-cover",
-            "--topic", topic
-        ]
-
-        response = ContentCreatorService._run_cli_command(
-            command,
-            timeout=ContentCreatorService.COVER_TIMEOUT
+        # TODO: 等待 content-creator API 支持封面生成功能
+        raise CreatorException(
+            message="封面图片生成功能暂未在 HTTP API 中实现",
+            details={"suggestion": "请使用 content-creator CLI 或等待 API 功能更新"}
         )
-
-        # 验证响应格式
-        if "image_path" not in response:
-            log.error(f"Invalid cover generation response: {response}")
-            raise CreatorInvalidResponseException(
-                json.dumps(response)[:500]
-            )
-
-        return response["image_path"]
 
     @staticmethod
     def extract_images_from_content(content: Optional[str]) -> list:
